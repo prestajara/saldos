@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>PrestaJara AppAbonos</title>
+  <style>
+    /* Eliminamos márgenes para que el iframe ocupe el 100% real de la pantalla del celular sin bordes blancos */
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #F2F2F7; /* Fondo a juego con tu app */
+    }
+    iframe {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+  </style>
+</head>
+<body>
+  <iframe 
+    src="https://script.google.com/macros/s/AKfycbxeBtls2XS6Fl88PWk_gFfYMtttdFDeUF5n-_dTvYGXOBeWxMIzgZ2qnjHqwD1_0JnE/exec"
+    allowfullscreen="true">
+  </iframe>
+
+  <script>
+    window.onload = function() {
+      var iframe = document.querySelector('iframe');
+      // Nota: Muchos navegadores móviles bloquean el fullscreen automático sin interacción del usuario, 
+      // pero mantenemos tu código original por si el usuario instala la PWA o interactúa.
+      if (iframe.requestFullscreen) {
+        iframe.requestFullscreen().catch((err) => {
+          console.error('Error attempting to enable full-screen mode:', err.message);
+        });
+      }
+    };
+  </script>
+</body>
+</html>
