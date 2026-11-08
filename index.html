@@ -1320,9 +1320,9 @@
       var globalPrestamoData = null;
       var cachedDashboardData = null;
 
-      // Variables del motor biométrico y cascada de comparación
+      // Variables del motor biométrico, precarga y cascada de comparación
       let modelosCargados = false;
-      let cargandoModelos = false;
+      let promesaCargaModelos = null;
       let descriptorPrincipal = null;       // Descriptor de cara_cliente
       let descriptoresMovimientos = [];     // Descriptores de Movimientos_Biometricos_URLs
       let rawMovimientosBase64 = [];        // Imágenes de respaldo en Base64 para carga diferida
@@ -1330,6 +1330,13 @@
       let intentosSelfie = 0;
       let intentosMatch = 0;
       let selfieBase64Data = null;
+
+      // Controladores de precarga inteligente y limpieza
+      let precargaTokenId = 0;
+      let precargaAbortController = null;
+      let promesaPrecargaBiometria = null;
+      let precargaBiometriaCompleta = false;
+      let loaderMensajesTimer = null;
 
       // Variables de cámara en vivo
       let activeCamStream = null;
@@ -1505,10 +1512,38 @@
       // MODALES, LOADER Y NAVEGACIÓN
       // =========================================================================
       function mostrarLoader(texto) {
+        if (loaderMensajesTimer) {
+          clearInterval(loaderMensajesTimer);
+          loaderMensajesTimer = null;
+        }
         document.getElementById('loader-text').textContent = texto;
         document.getElementById('global-loader').classList.remove('hidden');
       }
+
+      function mostrarLoaderProgresivoBiometria() {
+        const frases = [
+          'Preparando firma biométrica segura...',
+          'Conectando con el servidor de seguridad PrestaJara...',
+          'Descargando tu perfil biométrico, por favor espera...',
+          'Sincronizando cámara de validación, no cierres la página...',
+          'Casi terminamos, preparando el lector facial...'
+        ];
+        let idx = 0;
+        mostrarLoader(frases[0]);
+        loaderMensajesTimer = setInterval(() => {
+          idx++;
+          if (idx < frases.length) {
+            const el = document.getElementById('loader-text');
+            if (el) el.textContent = frases[idx];
+          }
+        }, 2400);
+      }
+
       function ocultarLoader() {
+        if (loaderMensajesTimer) {
+          clearInterval(loaderMensajesTimer);
+          loaderMensajesTimer = null;
+        }
         document.getElementById('global-loader').classList.add('hidden');
       }
 
@@ -1565,6 +1600,10 @@
 
       function cambiarVista(id, guardarEnHistorial = true) {
         cerrarCamaraGlobal(true);
+        const vistasFlujoFirma = ['vista-prestamo-nuevo', 'vista-contrato', 'vista-biometria'];
+        if (!vistasFlujoFirma.includes(id)) {
+          abortarYLimpiarPrecargaBiometrica();
+        }
         ALL_VIEWS.forEach(function(v) { document.getElementById(v).classList.add('hidden'); });
         var t = document.getElementById(id);
         t.classList.remove('hidden', 'fade-in', 'slide-up');
@@ -1653,6 +1692,7 @@
           const res = await callBackendAPI('verificarLogin', { numCliente, password }, 16000, 1);
           const clienteConfirmado = (res && typeof res === 'object') ? (res.ok ? res.cliente : null) : res;
           if (clienteConfirmado) {
+            abortarYLimpiarPrecargaBiometrica();
             clienteLogueado = String(clienteConfirmado).trim();
             enviarLog('Inicio de sesión', 'Login', 'El usuario ingresó exitosamente al sistema.');
             await iniciarSplash();
@@ -1676,6 +1716,7 @@
 
       function cerrarSesion() {
         enviarLog('Cierre de sesión', 'Login', 'El usuario cerró su sesión.');
+        abortarYLimpiarPrecargaBiometrica();
         clienteLogueado = null;
         cachedDashboardData = null;
         pagoTotalAnticipado = '0.00';
@@ -1794,6 +1835,7 @@
         document.getElementById('pn-interes').textContent = formatMoney(data.monto_interesprestamo);
         document.getElementById('pn-deuda').textContent = formatMoney(data.monto_hapagar);
         cambiarVista('vista-prestamo-nuevo');
+        iniciarPrecargaSilenciosaBiometria();
       }
 
       function prepararContrato() {
@@ -1835,8 +1877,10 @@
         validarEstadoDeAcuerdo();
         enviarLog('Generación', 'Contrato', 'El sistema preparó y mostró el contrato del crédito para firma.');
 
-        // Precargar modelos en segundo plano mientras el cliente lee el contrato
-        precargarModelosFaceApi();
+        // Si por alguna razón no había iniciado la precarga, la asegura sin duplicar
+        if (!promesaPrecargaBiometria && !precargaBiometriaCompleta) {
+          iniciarPrecargaSilenciosaBiometria();
+        }
         cambiarVista('vista-contrato');
       }
 
