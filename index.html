@@ -1570,7 +1570,9 @@
         t.classList.remove('hidden', 'fade-in', 'slide-up');
         void t.offsetWidth;
         t.classList.add((id === 'vista-carga' || id === 'vista-login') ? 'fade-in' : 'slide-up');
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        window.scrollTo(0, 0);
+        document.documentElement.scrollTop = 0;
+        document.body.scrollTop = 0;
 
         var navViews = ['vista-dashboard', 'vista-cuenta', 'vista-pago', 'vista-metodo-pago', 'vista-limites', 'vista-guia', 'vista-prestamo-nuevo', 'vista-creditos-detalle'];
         document.getElementById('bottom-nav').style.display = navViews.indexOf(id) >= 0 ? 'flex' : 'none';
