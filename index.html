@@ -2385,6 +2385,8 @@
               icon: iconType,
               showConfirmButton: false,
               allowOutsideClick: false,
+              returnFocus: false,
+              heightAuto: false,
               timer: 4200,
               timerProgressBar: true
             }).then(() => {
@@ -2397,6 +2399,11 @@
               document.getElementById('exampleFirmaFinal').style.display = 'block';
               document.getElementById('slotFirmaFinal').classList.remove('has-image');
               cambiarVista('vista-dashboard');
+              setTimeout(() => {
+                window.scrollTo(0, 0);
+                document.documentElement.scrollTop = 0;
+                document.body.scrollTop = 0;
+              }, 60);
             });
           } else {
             mostrarAlerta('Error', (res && res.message) ? res.message : 'No se pudo guardar el contrato.', '⚠️');
