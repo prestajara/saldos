@@ -1932,23 +1932,121 @@
       // =========================================================================
       // BIOMETRÍA ESTILO ACTUALIZACIÓN DE DATOS + CASCADA (CARA_CLIENTE -> MOVIMIENTOS)
       // =========================================================================
-      async function precargarModelosFaceApi() {
-        if (modelosCargados || cargandoModelos || typeof faceapi === 'undefined') return;
-        cargandoModelos = true;
-        try {
-          const MODEL_URL = 'https://justadudewhohacks.github.io/face-api.js/models';
-          await Promise.all([
-            faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
-            faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL),
-            faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
-            faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
-          ]);
-          modelosCargados = true;
-        } catch (e) {
-          console.warn('Error precargando modelos:', e);
-        } finally {
-          cargandoModelos = false;
+      function abortarYLimpiarPrecargaBiometrica() {
+        precargaTokenId++;
+        if (precargaAbortController) {
+          try { precargaAbortController.abort(); } catch (e) {}
+          precargaAbortController = null;
         }
+        promesaPrecargaBiometria = null;
+        precargaBiometriaCompleta = false;
+        descriptorPrincipal = null;
+        descriptoresMovimientos = [];
+        rawMovimientosBase64 = [];
+        selfieBase64Data = null;
+        errorReferencia = false;
+      }
+
+      async function precargarModelosFaceApi() {
+        if (modelosCargados) return true;
+        if (promesaCargaModelos) return promesaCargaModelos;
+
+        promesaCargaModelos = (async () => {
+          for (let i = 0; i < 20; i++) {
+            if (typeof faceapi !== 'undefined') break;
+            await new Promise(r => setTimeout(r, 200));
+          }
+          if (typeof faceapi === 'undefined') throw new Error('Librería Face-API no disponible');
+
+          const MODEL_URLS = [
+            'https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js@0.22.2/weights',
+            'https://justadudewhohacks.github.io/face-api.js/models'
+          ];
+
+          for (let u = 0; u < MODEL_URLS.length; u++) {
+            try {
+              const url = MODEL_URLS[u];
+              await Promise.all([
+                faceapi.nets.tinyFaceDetector.loadFromUri(url),
+                faceapi.nets.ssdMobilenetv1.loadFromUri(url),
+                faceapi.nets.faceLandmark68Net.loadFromUri(url),
+                faceapi.nets.faceRecognitionNet.loadFromUri(url)
+              ]);
+              modelosCargados = true;
+              return true;
+            } catch (errUrl) {
+              console.warn('Intentando espejo secundario de modelos IA...');
+            }
+          }
+          return false;
+        })();
+
+        try {
+          return await promesaCargaModelos;
+        } finally {
+          if (!modelosCargados) promesaCargaModelos = null;
+        }
+      }
+
+      function iniciarPrecargaSilenciosaBiometria() {
+        abortarYLimpiarPrecargaBiometrica();
+        if (!clienteLogueado) return;
+
+        const miToken = ++precargaTokenId;
+        precargaAbortController = new AbortController();
+        const signalActual = precargaAbortController.signal;
+
+        promesaPrecargaBiometria = (async () => {
+          try {
+            const modelosPromise = precargarModelosFaceApi();
+
+            let refData = null;
+            if (typeof google !== 'undefined' && google.script && google.script.run) {
+              refData = await callBackendAPI('getReferenciasBiometricas', { numCliente: clienteLogueado }, 20000, 0);
+            } else if (APPS_SCRIPT_URL && APPS_SCRIPT_URL.indexOf('http') === 0) {
+              const timer = setTimeout(() => {
+                try { precargaAbortController?.abort(); } catch (e) {}
+              }, 20000);
+              const resp = await fetch(APPS_SCRIPT_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify({ action: 'getReferenciasBiometricas', numCliente: clienteLogueado }),
+                signal: signalActual
+              });
+              clearTimeout(timer);
+              if (resp.ok) refData = await resp.json();
+            } else {
+              refData = await simularRespuestaLocal('getReferenciasBiometricas', { numCliente: clienteLogueado });
+            }
+
+            if (miToken !== precargaTokenId || signalActual.aborted) return false;
+
+            await modelosPromise;
+            if (miToken !== precargaTokenId || signalActual.aborted) return false;
+
+            if (refData && refData.caraPrincipal) {
+              descriptorPrincipal = await extraerDescriptorDeBase64(refData.caraPrincipal);
+            }
+            if (refData && Array.isArray(refData.movimientosBase64)) {
+              rawMovimientosBase64 = refData.movimientosBase64;
+            }
+            if (!descriptorPrincipal && rawMovimientosBase64.length === 0) {
+              errorReferencia = true;
+            }
+
+            if (miToken === precargaTokenId && !signalActual.aborted) {
+              precargaBiometriaCompleta = true;
+              return true;
+            }
+          } catch (e) {
+            if (miToken === precargaTokenId && !signalActual.aborted) {
+              errorReferencia = true;
+            }
+          }
+          return false;
+        })();
+
+        return promesaPrecargaBiometria;
       }
 
       function convertirBase64AImagen(base64Str) {
@@ -1977,25 +2075,24 @@
         document.getElementById('bio-nombre-cliente-footer').textContent = nomCompleto.toUpperCase();
 
         cambiarVista('vista-biometria');
-        descriptorPrincipal = null;
-        descriptoresMovimientos = [];
-        rawMovimientosBase64 = [];
-        errorReferencia = false;
         intentosSelfie = 0;
         intentosMatch = 0;
 
-        mostrarLoader('Preparando firma biométrica segura...');
-        try {
-          await precargarModelosFaceApi();
-          const refData = await callBackendAPI('getReferenciasBiometricas', { numCliente: clienteLogueado }, 22000, 1);
+        // Si la precarga silenciosa ya terminó mientras leía el contrato, entra en 0 segundos
+        if (precargaBiometriaCompleta && modelosCargados) {
+          return;
+        }
 
-          if (refData && refData.caraPrincipal) {
-            descriptorPrincipal = await extraerDescriptorDeBase64(refData.caraPrincipal);
+        // Si aún está descargando por internet lento, muestra frases progresivas y tope máximo de 12 seg
+        mostrarLoaderProgresivoBiometria();
+        try {
+          if (!promesaPrecargaBiometria) {
+            iniciarPrecargaSilenciosaBiometria();
           }
-          if (refData && Array.isArray(refData.movimientosBase64)) {
-            rawMovimientosBase64 = refData.movimientosBase64;
-          }
-          if (!descriptorPrincipal && rawMovimientosBase64.length === 0) {
+          const topeMaximoEspera = new Promise(resolve => setTimeout(() => resolve('timeout_destrabe'), 12000));
+          const resultado = await Promise.race([promesaPrecargaBiometria, topeMaximoEspera]);
+
+          if (resultado === 'timeout_destrabe' && !descriptorPrincipal && rawMovimientosBase64.length === 0) {
             errorReferencia = true;
           }
         } catch (e) {
