@@ -1,46 +1,2577 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>PrestaJara AppAbonos</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>PrestaJara Préstamos</title>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+
   <style>
-    /* Eliminamos márgenes para que el iframe ocupe el 100% real de la pantalla del celular sin bordes blancos */
-    html, body {
-      margin: 0;
-      padding: 0;
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
-      background-color: #F2F2F7; /* Fondo a juego con tu app */
+    :root {
+      --bg: #F2F2F7; --card: #FFFFFF; --text: #1C1C1E; --text-sec: #6B6B6B;
+      --text-light: #AEAEB2; --gold: #C9A000; --gold-light: #E8C060;
+      --gold-bg: linear-gradient(145deg, #F7E8B0 0%, #EAC94A 45%, #C08A00 100%);
+      --green-bg: linear-gradient(145deg, #A8E0B5 0%, #34C759 45%, #16A34A 100%);
+      --orange: #16a34a; --green: #34C759; --green-dark: #16A34A; --border: #E5E5EA;
+      --shadow: 0 2px 12px rgba(0,0,0,0.08); --radius-sm: 10px;
+      --verde-jara: #439859; --verde-jara-dark: #347a46; --verde-jara-light: #e8f5ec;
+      --azul-instruccion: #0a3d62; --bg-banner-ice: #eef6ff;
+      --error-color: #ff3b30; --warning-amber: #e17055;
     }
-    iframe {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      border: none;
+    
+    /* === MODO VALIDANDO (VERDE) === */
+    body.validating-mode .pay-zero, body.validating-mode .pay-percent, body.validating-mode .pay-label, body.validating-mode .prem-text {
+      background: var(--green-bg); -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    body.validating-mode .star { color: var(--green); font-size: 1rem; }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Nunito', -apple-system, BlinkMacSystemFont, sans-serif; -webkit-tap-highlight-color: transparent; }
+    html, body { background: var(--bg); color: var(--text); min-height: 100vh; overflow-x: hidden; }
+    .hidden { display: none !important; }
+    button { cursor: pointer; }
+    .screen-wrap { max-width: 430px; margin: 0 auto; background: var(--bg); min-height: 100vh; position: relative; }
+
+    /* === BOTTOM NAV === */
+    .bottom-nav {
+      position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 430px; background: white;
+      border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; padding: 10px 18px 16px; z-index: 200;
+    }
+    .nav-item { display: flex; flex-direction: column; align-items: center; gap: 3px; color: var(--text-light); font-size: 0.65rem; font-weight: 700; min-width: 65px; cursor: pointer; padding: 7px 14px 5px; border-radius: 12px; transition: all 0.2s; }
+    .nav-item span { line-height: 1; }
+    .nav-item i { font-size: 1.25rem; font-weight: 900; }
+    .nav-item.active-nav { background: #1C1C1E; color: white; }
+    .nav-item.active-nav i { color: white; }
+
+    /* === ANIMATIONS === */
+    .fade-in { animation: fadeIn 0.4s ease forwards; }
+    @keyframes fadeIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:none; } }
+    .slide-up { animation: slideUp 0.35s ease forwards; }
+    @keyframes slideUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:none; } }
+    @keyframes blinkDot { 0% { opacity: 0; } 50% { opacity: 1; } 100% { opacity: 0; } }
+    .dot1 { animation: blinkDot 1.4s infinite both; }
+    .dot2 { animation: blinkDot 1.4s infinite both 0.2s; }
+    .dot3 { animation: blinkDot 1.4s infinite both 0.4s; }
+    .shake-error { animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both; }
+    @keyframes shake {
+      10%, 90% { transform: translate3d(-2px, 0, 0); }
+      20%, 80% { transform: translate3d(3px, 0, 0); }
+      30%, 50%, 70% { transform: translate3d(-5px, 0, 0); }
+      40%, 60% { transform: translate3d(5px, 0, 0); }
+    }
+
+    /* === LOGIN === */
+    #vista-login { min-height: 100vh; background: white; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px 28px 60px; }
+    .login-logo-wrap { display: flex; flex-direction: column; align-items: center; margin-bottom: 36px; }
+    .login-logo-img { width: 80px; height: 80px; border-radius: 50%; object-fit: cover; box-shadow: 0 8px 28px rgba(22,163,74,0.25); margin-bottom: 16px; }
+    .login-brand { font-size: 1.45rem; font-weight: 900; color: #1C1C1E; letter-spacing: -0.3px; }
+    .login-brand span { color: var(--orange); }
+    .login-tagline { font-size: 0.82rem; color: var(--text-sec); font-weight: 500; margin-top: 5px; }
+    .login-card { width: 100%; background: #F9FAF9; border-radius: 20px; padding: 28px 22px; box-shadow: 0 4px 20px rgba(0,0,0,0.07); border: 1px solid #E8F5E9; }
+    .login-card-title { font-size: 1.1rem; font-weight: 800; margin-bottom: 6px; }
+    .login-card-sub { font-size: 0.82rem; color: var(--text-sec); font-weight: 500; margin-bottom: 26px; }
+    .login-field { margin-bottom: 18px; }
+    .login-label { font-size: 0.8rem; font-weight: 700; color: var(--text-sec); margin-bottom: 8px; display: block; }
+    .login-input-wrap { position: relative; }
+    .login-input { width: 100%; padding: 14px 46px 14px 16px; border: 1.5px solid var(--border); border-radius: 12px; font-size: 0.97rem; font-weight: 600; background: white; color: var(--text); outline: none; transition: border-color 0.2s, box-shadow 0.2s; }
+    .login-input:focus { border-color: var(--orange); box-shadow: 0 0 0 3px rgba(22,163,74,0.12); }
+    .login-input-icon { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); color: #AEAEB2; font-size: 1rem; }
+    .toggle-pass { cursor: pointer; background: none; border: none; position: absolute; right: 14px; top: 50%; transform: translateY(-50%); color: #AEAEB2; font-size: 1rem; padding: 0; }
+    .btn-login { width: 100%; background: var(--orange); color: white; border: none; border-radius: 13px; padding: 16px; font-size: 1rem; font-weight: 800; margin-top: 8px; transition: opacity 0.18s; letter-spacing: 0.2px; }
+    .btn-login:hover { opacity: 0.85; }
+    .btn-login:disabled { opacity: 0.55; cursor: not-allowed; }
+    .login-error { display: flex; align-items: center; gap: 8px; background: #FFF0F0; border: 1px solid #FFD0D0; border-radius: 10px; padding: 11px 14px; margin-top: 14px; font-size: 0.82rem; color: #C0392B; font-weight: 600; }
+    .login-error i { font-size: 0.88rem; flex-shrink: 0; }
+    .login-spinner { display: inline-block; width: 18px; height: 18px; border: 2.5px solid rgba(255,255,255,0.4); border-top: 2.5px solid white; border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; margin-right: 6px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .login-footer { margin-top: 30px; text-align: center; font-size: 0.78rem; color: var(--text-light); font-weight: 500; }
+
+    /* === SPLASH === */
+    #vista-carga { background: white; min-height: 100vh; padding: 56px 28px 40px; display: flex; flex-direction: column; align-items: flex-start; }
+    .splash-logo { display: flex; align-items: center; gap: 10px; margin-bottom: 70px; }
+    .splash-logo-img { width: 42px; height: 42px; border-radius: 50%; object-fit: cover; }
+    .splash-logo-name { font-size: 1.5rem; font-weight: 400; }
+    .splash-logo-name strong { font-weight: 800; color: #1C1C1E; }
+    .pay-badge-3d { width: 110px; height: 88px; background: #2A2A2A; border-radius: 14px; display: flex; flex-direction: column; align-items: center; justify-content: center; margin-bottom: 44px; position: relative; overflow: hidden; box-shadow: 0 8px 24px rgba(0,0,0,0.35); transition: background 0.3s; }
+    .pay-badge-3d::before { content: ''; position: absolute; inset: 0; background: linear-gradient(135deg, rgba(255,255,255,0.08) 0%, transparent 60%); }
+    .pay-zero { font-size: 2.8rem; font-weight: 900; line-height: 1; background: var(--gold-bg); -webkit-background-clip: text; -webkit-text-fill-color: transparent; transition: all 0.3s; }
+    .pay-percent { position: absolute; right: 12px; top: 10px; font-size: 1.3rem; font-weight: 900; background: var(--gold-bg); -webkit-background-clip: text; -webkit-text-fill-color: transparent; transition: all 0.3s; }
+    .pay-label { font-size: 0.58rem; font-weight: 800; letter-spacing: 3px; margin-top: 2px; background: var(--gold-bg); -webkit-background-clip: text; -webkit-text-fill-color: transparent; transition: all 0.3s; }
+    .splash-premium-row { display: flex; align-items: center; gap: 6px; margin-bottom: 14px; }
+    .splash-premium-row .star { color: var(--gold); font-size: 1.1rem; transition: color 0.3s; }
+    .splash-premium-row .prem-text { font-size: 1rem; font-weight: 800; letter-spacing: 0.5px; background: var(--gold-bg); -webkit-background-clip: text; -webkit-text-fill-color: transparent; transition: all 0.3s; }
+    .splash-title { font-size: 1.9rem; font-weight: 800; line-height: 1.2; margin-bottom: 14px; color: #1C1C1E; }
+    .splash-desc { font-size: 0.97rem; color: var(--text-sec); line-height: 1.6; margin-bottom: 44px; }
+    .splash-pct-label { font-size: 1.1rem; font-weight: 800; margin-bottom: 10px; }
+    .progress-track { width: 100%; height: 6px; background: #E5E5EA; border-radius: 3px; overflow: hidden; }
+    .progress-bar-fill { height: 100%; background: #1C1C1E; border-radius: 3px; width: 0%; transition: width 2s linear; }
+
+    /* === DASHBOARD === */
+    #vista-dashboard { padding-bottom: 90px; }
+    .dash-top-bar { background: #1C1C1E; padding: 14px 18px; display: flex; justify-content: space-between; align-items: center; }
+    .user-greeting { font-size: 1.15rem; font-weight: 800; color: white; margin-bottom: 0; }
+    .btn-logout-circle { background: #2A2A2A; border: none; border-radius: 50%; width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background 0.2s; flex-shrink: 0; }
+    .btn-logout-circle i { color: white; font-size: 1rem; margin-left: 2px; }
+    .btn-logout-circle:hover { background: #3A3A3C; }
+    .cuenta-line { height: 2px; background: var(--gold); width: 100%; transition: background 0.3s; }
+    .dash-header { padding: 16px 18px 14px; }
+    .dash-title { font-size: 1.35rem; font-weight: 800; line-height: 1.2; color: #1C1C1E; }
+    .dash-subtitle { display: flex; align-items: center; gap: 6px; color: var(--text-sec); font-size: 0.85rem; margin-top: 5px; font-weight: 600; }
+    .dash-subtitle i { color: var(--green); font-size: 0.85rem; }
+    .premium-card-outer { margin: 0 16px 14px; border-radius: 18px; overflow: hidden; box-shadow: 0 6px 24px rgba(0,0,0,0.15); }
+    .premium-card-header { background: #1C1C1E; padding: 14px 18px; display: flex; align-items: center; gap: 7px; cursor: pointer; }
+    .prem-star-icon { color: var(--gold-light); font-size: 1rem; }
+    .prem-header-text { color: white; font-weight: 800; font-size: 0.97rem; }
+    .prem-header-text .chevron { opacity: 0.6; font-size: 0.75rem; margin-left: 4px; }
+    .premium-card-body { background: linear-gradient(145deg, #F7E9B5 0%, #EAC94A 45%, #C08A00 100%); padding: 22px 20px 28px; position: relative; overflow: hidden; }
+    .premium-card-body::after { content: '✦'; position: absolute; right: 20px; top: 50%; transform: translateY(-50%); font-size: 4.5rem; color: rgba(255,255,255,0.28); pointer-events: none; }
+    .credit-revolv-label { font-size: 0.8rem; color: rgba(0,0,0,0.5); font-weight: 600; margin-bottom: 8px; display: flex; align-items: center; gap: 5px; }
+    .credit-revolv-label i { font-size: 0.72rem; }
+    .credit-big-amount { font-size: 2.6rem; font-weight: 900; color: #1C1C1E; letter-spacing: -1px; }
+    .info-row-card { background: white; margin: 0 16px 12px; border-radius: var(--radius-sm); padding: 15px 18px; display: flex; align-items: center; justify-content: space-between; box-shadow: var(--shadow); }
+    .info-row-label { font-size: 0.88rem; color: var(--text-sec); font-weight: 500; }
+    .info-row-value { font-size: 0.88rem; font-weight: 800; }
+    .btn-dark { display: block; width: calc(100% - 32px); margin: 0 16px 12px; background: #1C1C1E; color: white; border: none; border-radius: 14px; padding: 19px; font-size: 1.08rem; font-weight: 800; transition: opacity 0.18s; }
+    .btn-dark:hover { opacity: 0.82; }
+    .btn-outline { display: block; width: calc(100% - 32px); margin: 0 16px 12px; background: white; color: #1C1C1E; border: 2px solid #1C1C1E; border-radius: 14px; padding: 17px; font-size: 1.08rem; font-weight: 800; transition: all 0.18s; }
+    .btn-outline:hover { background: #1C1C1E; color: white; }
+    .note-card { background: white; margin: 0 16px 12px; border-radius: var(--radius-sm); padding: 15px 18px; box-shadow: var(--shadow); cursor: pointer; }
+    .note-title-row { display: flex; align-items: center; font-size: 0.87rem; font-weight: 700; gap: 5px; flex-wrap: wrap; }
+    .note-title-row .note-divider { color: var(--text-light); margin: 0 4px; }
+    .note-body { font-size: 0.8rem; color: var(--text-sec); margin-top: 5px; font-weight: 500; }
+    .premium-bar-btn { background: #1C1C1E; margin: 0 16px 20px; border-radius: 12px; border: none; padding: 13px 18px; width: calc(100% - 32px); display: flex; align-items: center; color: white; cursor: pointer; }
+    .prem-bar-inner { display: flex; align-items: center; gap: 8px; font-size: 0.87rem; font-weight: 700; }
+    .prem-bar-count { color: var(--gold-light); }
+    .section-div { height: 8px; background: var(--bg); }
+    .section-heading { font-size: 1.05rem; font-weight: 800; margin-bottom: 12px; color: #1C1C1E; }
+    .mi-pago-wrap { background: white; padding: 20px 18px; }
+    .mi-pago-label { font-size: 0.9rem; font-weight: 600; color: var(--text-sec); margin-bottom: 13px; }
+    .mi-pago-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+    .mi-pago-amount { font-size: 1.65rem; font-weight: 900; display: inline; }
+    .mi-pago-original { font-size: 0.9rem; color: var(--orange); text-decoration: line-through; margin-left: 8px; font-weight: 600; }
+    .mi-pago-info-icon { color: #C0C0C0; font-size: 0.78rem; margin-left: 5px; }
+    .mi-pago-due { font-size: 0.8rem; color: var(--text-sec); margin-top: 5px; font-weight: 500; }
+    .ver-btn-gray { background: #F0F0F5; border: none; border-radius: 10px; padding: 11px 22px; font-size: 0.92rem; font-weight: 800; color: #1C1C1E; transition: background 0.18s; flex-shrink: 0; }
+    .ver-btn-gray:hover { background: #E0E0EA; }
+    .referral-section { background: white; padding: 20px 18px; }
+    .referral-eyebrow { font-size: 0.85rem; color: var(--text-sec); font-style: italic; margin-bottom: 8px; font-weight: 500; }
+    .referral-title { font-size: 1.02rem; font-weight: 700; line-height: 1.45; margin-bottom: 16px; }
+    .referral-row-outer { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+    .referral-row-content { flex: 1; min-width: 0; }
+    .referral-emoji { font-size: 3.2rem; flex-shrink: 0; }
+    .referral-link-box { background: #1C1C1E; border-radius: 10px; padding: 12px 14px; display: flex; align-items: center; gap: 8px; }
+    .copy-icon { color: var(--text-light); font-size: 0.9rem; flex-shrink: 0; }
+    .referral-url { color: white; font-size: 0.8rem; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
+    .copy-text-btn { background: transparent; border: none; color: var(--gold-light); font-weight: 800; font-size: 0.85rem; flex-shrink: 0; padding: 0 2px; }
+    .conocer-mas-link { display: inline-flex; align-items: center; gap: 4px; font-size: 0.85rem; font-weight: 700; margin-top: 12px; text-decoration: underline; cursor: pointer; color: #1C1C1E; }
+    .ver-btn-dark-sm { background: #1C1C1E; color: white; border: none; border-radius: 10px; padding: 11px 18px; font-weight: 800; font-size: 0.87rem; flex-shrink: 0; }
+    .limites-section { background: white; padding: 20px 18px; }
+    .limite-inner { background: linear-gradient(135deg, #F7E9B5 0%, #EAC94A 100%); border-radius: 12px; padding: 16px; display: flex; align-items: center; justify-content: space-between; }
+    .limite-left-row { display: flex; align-items: center; gap: 12px; }
+    .limite-icon-wrap { font-size: 1.5rem; color: #6B4C00; background: rgba(255,255,255,0.4); width: 44px; height: 44px; display: flex; justify-content: center; align-items: center; border-radius: 10px; }
+    .limite-label { font-weight: 800; font-size: 0.95rem; color: #1C1C1E; }
+    .limite-sublabel { font-size: 0.8rem; color: #6B4C00; margin-top: 2px; font-weight: 600; }
+    .info-imp-section { background: white; padding: 20px 18px; }
+    .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .info-card-item { background: #F2F2F7; border-radius: 14px; padding: 18px 10px; cursor: pointer; transition: background 0.18s; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+    .info-card-item:hover { background: #E8E8EE; }
+    .info-card-prem { background: linear-gradient(145deg, #F7E9B5 0%, #EAC94A 100%); display: block; padding: 18px 14px; }
+    .info-card-title { font-weight: 800; font-size: 0.9rem; line-height: 1.35; margin-bottom: 12px; color: #1C1C1E; }
+    .info-arrow { font-size: 1.1rem; display: block; margin-top: 12px; }
+    .info-prem-coin { font-size: 2.8rem; display: block; margin-top: 16px; text-align: center; color: #1C1C1E; }
+
+    /* === CUENTA === */
+    #vista-cuenta { padding-bottom: 90px; background: var(--bg); }
+
+    /* === PAGO === */
+    #vista-pago { padding-bottom: 90px; background: var(--bg); }
+    .pago-topbar { padding: 20px 18px 12px; display: flex; align-items: center; gap: 12px; background: white; }
+    .back-btn-icon { background: none; border: none; font-size: 1.8rem; color: #1C1C1E; padding: 0 8px 0 0; line-height: 1; font-weight: 400; display: flex; align-items: center; }
+    
+    .pending-card { background: white; margin: 12px 16px; border-radius: 16px; padding: 24px; box-shadow: var(--shadow); }
+    .pending-label-text { font-size: 0.82rem; color: var(--text-sec); font-weight: 500; margin-bottom: 10px; line-height: 1.4; }
+    .pending-big { font-size: 2.3rem; font-weight: 900; letter-spacing: -0.5px; }
+    .pending-original-text { color: var(--orange); text-decoration: line-through; font-size: 1rem; font-weight: 700; margin-left: 8px; }
+    .pending-due-text { font-size: 0.8rem; color: var(--text-sec); margin-top: 7px; font-weight: 500; }
+    .includes-credits-row { display: flex; align-items: center; gap: 6px; cursor: pointer; border-top: 1px solid var(--border); padding-top: 12px; margin-top: 12px; font-size: 0.85rem; color: var(--text-sec); font-weight: 500; }
+    .includes-credits-row span { color: #1C1C1E; font-weight: 700; }
+    .plan-section { background: white; padding: 22px 18px; margin-top: 4px; }
+    .plan-title { font-size: 1rem; font-weight: 800; margin-bottom: 4px; }
+    .plan-total-label { font-size: 0.8rem; color: var(--text-sec); font-weight: 500; margin-bottom: 22px; }
+    .plan-item-row { display: flex; align-items: flex-start; margin-bottom: 22px; position: relative; }
+    .plan-item-row:last-child { margin-bottom: 0; }
+    .plan-item-row:not(:last-child)::after { content: ''; position: absolute; left: 72px; top: 22px; bottom: -14px; width: 2px; background: #E5E5EA; }
+    .plan-date-col { width: 58px; text-align: right; font-size: 0.78rem; color: var(--text-sec); padding-top: 3px; font-weight: 600; flex-shrink: 0; }
+    .plan-dot-col { width: 28px; display: flex; justify-content: center; flex-shrink: 0; padding-top: 4px; }
+    .plan-dot { width: 14px; height: 14px; border-radius: 50%; background: var(--green); position: relative; z-index: 1; }
+    .plan-info-col { flex: 1; }
+    .plan-monto { font-size: 0.97rem; font-weight: 800; }
+    .plan-detail-text { font-size: 0.75rem; color: var(--text-sec); margin-top: 3px; font-weight: 500; line-height: 1.5; }
+    .plan-detail-text .tachado { text-decoration: line-through; }
+    .badge-vencido { background: #FDE8E8; color: #C53030; padding: 3px 8px; border-radius: 12px; font-size: 0.72rem; font-weight: 700; margin-left: 8px; display: inline-block; vertical-align: middle; letter-spacing: 0.2px; }
+
+    /* === VISTA DETALLE CRÉDITOS === */
+    #vista-creditos-detalle { padding-bottom: 90px; background: var(--bg); }
+    .cd-topbar { padding: 20px 18px 12px; display: flex; align-items: center; gap: 12px; background: white; }
+    .cd-title-top { font-size: 1.25rem; font-weight: 800; color: #1C1C1E; }
+    .cd-main-card { background: white; padding: 24px 18px; margin-bottom: 8px; }
+    .cd-header-label { font-size: 0.9rem; color: #1C1C1E; font-weight: 600; margin-bottom: 8px; }
+    .cd-header-amount { font-size: 2.2rem; font-weight: 900; color: #1C1C1E; margin-bottom: 8px; letter-spacing: -0.5px; }
+    .cd-header-note { font-size: 0.8rem; color: var(--text-light); line-height: 1.4; font-weight: 500; }
+    .cd-list-container { background: white; padding: 0 18px; }
+    .credito-item-row { display: flex; gap: 12px; padding: 20px 0; border-bottom: 1px solid var(--border); }
+    .credito-item-row:last-child { border-bottom: none; }
+    .ci-icon-wrap { width: 34px; height: 34px; border-radius: 8px; background: #A07855; color: white; display: flex; align-items: center; justify-content: center; font-size: 0.95rem; flex-shrink: 0; margin-top: 2px; }
+    .ci-content { flex: 1; }
+    .ci-header { display: flex; align-items: center; margin-bottom: 4px; }
+    .ci-title { font-size: 0.98rem; font-weight: 800; color: #1C1C1E; }
+    .ci-badge-vencido { background: #FDE8E8; color: #C53030; padding: 2px 8px; border-radius: 12px; font-size: 0.72rem; font-weight: 800; margin-left: 8px; letter-spacing: 0.2px; }
+    .ci-amount { font-size: 0.98rem; font-weight: 900; color: #1C1C1E; margin-left: auto; display: flex; align-items: center; }
+    .ci-pagos { font-size: 0.82rem; color: var(--text-light); font-weight: 600; margin-bottom: 2px; }
+    .ci-obtuviste { font-size: 0.8rem; color: var(--text-light); font-weight: 500; }
+
+    /* === VISTA MÉTODO PAGO (SPEI) === */
+    #vista-metodo-pago { padding-bottom: 90px; background: var(--bg); }
+    .spei-topbar { padding: 20px 18px 14px; background: white; display: flex; align-items: center; gap: 12px; }
+    .spei-info-card { background: white; margin: 12px 16px; border-radius: 16px; padding: 22px; box-shadow: var(--shadow); }
+    .spei-monto-label { display: flex; align-items: center; gap: 6px; font-size: 0.88rem; color: var(--text-sec); font-weight: 600; margin-bottom: 10px; }
+    .spei-monto-label i { font-size: 0.8rem; color: #AEAEB2; }
+    .spei-monto-big { font-size: 2.4rem; font-weight: 900; letter-spacing: -1px; margin-bottom: 14px; }
+    .spei-desc-text { font-size: 0.82rem; color: var(--text-sec); line-height: 1.65; font-weight: 500; }
+    .metodo-card { background: white; margin: 12px 16px; border-radius: 16px; box-shadow: var(--shadow); overflow: hidden; }
+    .metodo-header { padding: 16px 18px; display: flex; align-items: center; justify-content: space-between; }
+    .metodo-title { font-size: 1rem; font-weight: 800; }
+    .metodo-body { border-top: 1px solid var(--border); padding: 18px; }
+    .campo-group { margin-bottom: 20px; }
+    .campo-group:last-child { margin-bottom: 0; }
+    .campo-label { font-size: 0.78rem; color: var(--text-sec); font-weight: 600; margin-bottom: 9px; }
+    .campo-row { display: flex; align-items: center; gap: 12px; }
+    .campo-valor { font-size: 1rem; font-weight: 900; flex: 1; letter-spacing: 0.2px; word-break: break-all; }
+    .btn-copiar { background: #1C1C1E; color: white; border: none; border-radius: 10px; padding: 11px 20px; font-size: 0.87rem; font-weight: 800; white-space: nowrap; flex-shrink: 0; transition: all 0.2s; }
+    .btn-copiar:hover { opacity: 0.78; }
+    .btn-copiar.copiado { background: var(--green); }
+    .warning-box { background: #FFFBF0; border-radius: 12px; padding: 16px 18px; margin: 12px 16px; border: 1px solid #FFE58F; }
+    .warning-text { font-size: 0.8rem; color: #664D00; line-height: 1.65; font-weight: 500; }
+    .guia-link { display: inline-flex; align-items: center; gap: 5px; font-size: 0.87rem; font-weight: 800; color: #1C1C1E; cursor: pointer; margin-top: 10px; text-decoration: underline; }
+
+    /* === VISTA LÍMITE DE CRÉDITO === */
+    #vista-limites { padding-bottom: 90px; background: var(--bg); }
+    .limites-topbar { padding: 20px 18px 14px; background: white; display: flex; align-items: center; gap: 12px; }
+    .limites-header-card { background: white; padding: 24px 20px 28px; }
+    .limites-main-title { font-size: 1.5rem; font-weight: 800; margin-bottom: 6px; }
+    .limites-dias { font-size: 0.88rem; color: var(--text-sec); font-weight: 500; margin-bottom: 28px; }
+    .limites-dias span { color: #1C1C1E; font-weight: 700; }
+    .limite-total-label { font-size: 0.82rem; color: var(--text-sec); font-weight: 600; text-align: center; margin-bottom: 8px; }
+    .limite-total-monto { font-size: 2.8rem; font-weight: 900; letter-spacing: -1px; text-align: center; margin-bottom: 4px; }
+    .como-funcionan-card { background: white; margin: 10px 0 0; padding: 22px 20px; }
+    .como-titulo { font-size: 1.1rem; font-weight: 800; line-height: 1.3; margin-bottom: 22px; }
+    .cf-item { display: flex; align-items: flex-start; gap: 16px; margin-bottom: 22px; }
+    .cf-item:last-child { margin-bottom: 0; }
+    .cf-icon-wrap { width: 42px; height: 42px; background: #F2F2F7; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 1.2rem; }
+    .cf-content { flex: 1; }
+    .cf-title { font-size: 0.92rem; font-weight: 800; margin-bottom: 5px; line-height: 1.35; }
+    .cf-desc { font-size: 0.78rem; color: var(--text-sec); line-height: 1.6; font-weight: 500; }
+    .limites-prem-badge { display: flex; align-items: center; justify-content: center; gap: 7px; padding: 18px; }
+    .limites-prem-badge span { font-size: 0.9rem; font-weight: 800; background: var(--gold-bg); -webkit-background-clip: text; -webkit-text-fill-color: transparent; letter-spacing: 0.5px; }
+    .btn-solicitar { display: block; width: calc(100% - 32px); margin: 0 16px 16px; background: #1C1C1E; color: white; border: none; border-radius: 14px; padding: 19px; font-size: 1.05rem; font-weight: 800; transition: opacity 0.18s; }
+    .btn-solicitar:hover { opacity: 0.82; }
+
+    /* === VISTA GUÍA DE PAGOS === */
+    #vista-guia { padding-bottom: 90px; background: var(--bg); }
+    .guia-topbar { padding: 20px 18px 14px; background: white; display: flex; align-items: center; gap: 12px; }
+    .guia-titulo { font-size: 1.4rem; font-weight: 800; }
+    .guia-clabe-card { background: white; margin: 12px 16px; border-radius: 16px; padding: 22px; box-shadow: var(--shadow); }
+    .guia-step-header { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 20px; }
+    .guia-step-num { width: 30px; height: 30px; border-radius: 50%; background: #1C1C1E; color: white; font-size: 0.88rem; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 2px; }
+    .guia-step-text { font-size: 0.92rem; font-weight: 700; line-height: 1.4; padding-top: 4px; }
+    .guia-campo-group { margin-bottom: 20px; }
+    .guia-campo-group:last-child { margin-bottom: 0; }
+    .guia-campo-label { font-size: 0.78rem; color: var(--text-sec); font-weight: 600; margin-bottom: 9px; }
+    .guia-campo-row { display: flex; align-items: center; gap: 12px; }
+    .guia-campo-valor { font-size: 1rem; font-weight: 900; flex: 1; letter-spacing: 0.2px; word-break: break-all; }
+    .guia-aviso { background: #F9F9F9; border-radius: 12px; padding: 14px 16px; margin: 0 16px 10px; border: 1px solid var(--border); }
+    .guia-aviso-text { font-size: 0.8rem; color: var(--text-sec); line-height: 1.65; font-weight: 500; }
+    .pasos-card { background: white; margin: 10px 16px; border-radius: 16px; padding: 22px; box-shadow: var(--shadow); }
+    .paso-item { display: flex; align-items: flex-start; gap: 16px; margin-bottom: 30px; position: relative; }
+    .paso-item:last-child { margin-bottom: 0; }
+    .paso-item:not(:last-child)::after { content: ''; position: absolute; left: 15px; top: 34px; bottom: -20px; width: 2px; background: #E5E5EA; }
+    .paso-num { width: 32px; height: 32px; border-radius: 50%; background: var(--green); color: white; font-size: 0.85rem; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .paso-content { flex: 1; padding-top: 4px; }
+    .paso-title { font-size: 0.9rem; font-weight: 700; margin-bottom: 6px; }
+    .paso-desc { font-size: 0.8rem; color: var(--text-sec); line-height: 1.6; font-weight: 500; }
+    .mockup-pill { background: #F2F2F7; border-radius: 8px; padding: 14px 16px; margin-top: 12px; font-size: 0.78rem; font-weight: 700; color: var(--text-sec); border: 1px solid var(--border); display: inline-flex; align-items: center; gap: 8px; }
+    .mockup-pill.dark { background: #1C1C1E; color: white; border-color: #1C1C1E; }
+    .mockup-clabe-box { background: #F2F2F7; border-radius: 10px; padding: 12px 14px; margin-top: 12px; font-size: 0.78rem; color: var(--text-sec); line-height: 1.8; border: 1px solid var(--border); }
+    .mockup-amount-box { background: #1C1C1E; color: white; border-radius: 10px; padding: 12px 14px; margin-top: 10px; font-size: 0.85rem; font-weight: 800; text-align: center; }
+    .ayuda-footer { padding: 16px 18px 8px; text-align: center; }
+    .ayuda-btn { display: inline-flex; align-items: center; gap: 6px; font-size: 0.88rem; font-weight: 700; color: var(--text-sec); background: none; border: none; }
+
+    /* === VISTA PRÉSTAMO NUEVO === */
+    #vista-prestamo-nuevo { padding-bottom: 90px; background: var(--bg); }
+    .circles-wrapper { position: relative; width: 100%; height: 100px; display: flex; align-items: center; justify-content: center; gap: 10px; margin: 0 0 12px; overflow: hidden; }
+    .circle-item { width: 66px; height: 66px; border-radius: 50%; background: #2A7B44; color: white; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 0.85rem; flex-shrink: 0; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+    .circle-item.cut-left { margin-left: -40px; }
+    .circle-item.cut-right { margin-right: -40px; }
+    .circle-item.active-circle { width: 94px; height: 94px; background: #2A7B44; border: 3px solid white; box-shadow: 0 4px 14px rgba(42,123,68,0.3); font-size: 1.3rem; display: flex; flex-direction: column; justify-content: center; }
+    .c-val-sm { font-size: 0.8rem; }
+    .c-val-big-txt { font-weight: 900; line-height: 1.1; }
+    .c-val-cur { font-size: 0.75rem; font-weight: 800; line-height: 1; margin-bottom: 2px;}
+    .c-val-curr-bottom { font-size: 0.65rem; font-weight: 800; line-height: 1; margin-top: 2px;}
+    .shadow-divider { height: 1px; background: transparent; box-shadow: 0 8px 10px rgba(0,0,0,0.06); border-bottom: 1px solid #E5E5EA; margin: 0 0 14px; }
+    .terms-title { font-size: 1.1rem; font-weight: 800; margin: 0 18px 12px; color: #1C1C1E; }
+    .option-card { background: #1C1C1E; color: white; margin: 0 18px 10px; border-radius: 20px; padding: 22px 20px; display: flex; align-items: center; gap: 16px; position: relative; border: 2px solid transparent; transition: all 0.2s; cursor: pointer; }
+    .option-card.selected { border-color: var(--green); }
+    .opt-num { font-size: 1.6rem; font-weight: 900; }
+    .opt-text { font-size: 0.95rem; font-weight: 600; flex: 1; }
+    .opt-arrow { color: var(--gold); font-size: 1.2rem; }
+    .option-card.selected .opt-arrow { color: var(--green); }
+    .propuesto-badge { position: absolute; top: -12px; right: 20px; background: var(--green); color: white; font-size: 0.75rem; font-weight: 800; padding: 4px 10px; border-radius: 10px; }
+    .summary-box { padding: 10px 24px 15px; }
+    .summary-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-size: 0.95rem; font-weight: 600; color: #1C1C1E; }
+    .s-label { color: var(--text-sec); font-weight: 500; }
+    .btn-green-full { background: #2A7B44; color: white; border: none; border-radius: 14px; padding: 18px; width: calc(100% - 36px); margin: 5px 18px 30px; font-size: 1.1rem; font-weight: 800; box-shadow: 0 4px 12px rgba(42,123,68,0.2); transition: opacity 0.18s; }
+    .btn-green-full:hover { opacity: 0.85; }
+
+    /* === VISTA CONTRATO === */
+    #vista-contrato { padding-bottom: 110px; background: var(--bg); }
+    .ct-topbar { position: sticky; top: 0; background: white; z-index: 100; border-bottom: 1px solid #E5E5EA; padding: 20px 18px 12px; display: flex; align-items: center; gap: 12px; }
+    .ct-alert-txt { font-size: 0.75rem; color: #2A7B44; font-weight: 600; text-align: center; margin: 12px 18px; }
+    .ct-card { background: white; border-radius: 16px; padding: 20px; box-shadow: var(--shadow); border: 1px solid #E5E5EA; margin: 0 16px 16px; }
+    .ct-label-sm { font-size: 0.85rem; color: #6B6B6B; margin-bottom: 10px; }
+    .ct-monto-box { background: #F2F2F7; border-radius: 12px; padding: 16px; text-align: center; margin-bottom: 10px; }
+    .ct-monto-txt { font-size: 2.2rem; font-weight: 800; color: #1C1C1E; }
+    .ct-note-xs { font-size: 0.75rem; color: #AEAEB2; text-align: center; }
+    .ct-h2 { font-size: 0.95rem; font-weight: 700; color: #1C1C1E; margin-bottom: 8px; }
+    .ct-flex-row { display: flex; gap: 8px; margin-bottom: 22px; }
+    .ct-btn-light { flex: 1; padding: 10px; border-radius: 10px; background: #F2F2F7; color: #6B6B6B; font-size: 0.9rem; font-weight: 600; text-align: center; border: none; }
+    .ct-btn-primary { flex: 1; padding: 10px; border-radius: 10px; background: #2A7B44; color: white; font-size: 0.9rem; font-weight: 600; text-align: center; border: none; box-shadow: 0 2px 6px rgba(42,123,68,0.25); }
+    .ct-border-top { border-top: 1px solid #E5E5EA; padding-top: 14px; display: flex; justify-content: space-between; align-items: center; }
+    .ct-val-right { font-size: 0.9rem; font-weight: 700; color: #1C1C1E; text-align: right; }
+    .ct-row-between { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .ct-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; font-size: 0.85rem; padding: 0 16px; margin-bottom: 20px; }
+    .ct-grid-label { color: #6B6B6B; }
+    .ct-grid-val { font-weight: 600; color: #1C1C1E; margin-left: 4px; }
+    .ct-chk-wrap { display: flex; align-items: flex-start; gap: 12px; background: white; padding: 16px; border-radius: 12px; border: 1px solid #E5E5EA; margin: 0 16px 20px; box-shadow: var(--shadow); }
+    .ct-checkbox { width: 22px; height: 22px; border: 1px solid #C0C0C0; border-radius: 6px; accent-color: #2A7B44; cursor: pointer; }
+    .ct-chk-text { font-size: 0.85rem; color: #1C1C1E; }
+    .ct-link { color: #F87171; font-weight: 600; text-decoration: underline; background: none; border: none; padding: 0; cursor: pointer; margin-left: 4px; outline: none; }
+    .ct-input-wrap { margin: 0 16px 16px; }
+    .ct-inp-lbl { display: block; font-size: 0.85rem; font-weight: 700; color: #1C1C1E; margin-bottom: 6px; }
+    .ct-inp { width: 100%; padding: 14px 16px; border-radius: 12px; border: 1px solid #E5E5EA; font-size: 0.9rem; outline: none; transition: all 0.2s; }
+    .ct-inp:focus { border-color: #2A7B44; box-shadow: 0 0 0 2px rgba(42,123,68,0.1); }
+    .ct-bottom-fixed { position: fixed; bottom: 0; left: 0; right: 0; margin: 0 auto; max-width: 430px; background: white; border-top: 1px solid #E5E5EA; padding: 16px; z-index: 200; box-shadow: 0 -4px 6px -1px rgba(0,0,0,0.05); }
+    .ct-btn-final { width: 100%; padding: 18px; border-radius: 14px; font-size: 1.1rem; font-weight: 800; text-align: center; border: none; transition: all 0.2s; color: white; cursor: pointer; }
+    .ct-btn-disabled { background: #C0C0C0; cursor: not-allowed; }
+    .ct-btn-enabled { background: #2A7B44; box-shadow: 0 4px 12px rgba(42,123,68,0.25); }
+    .ct-btn-enabled:hover { opacity: 0.85; }
+    .ct-modal-content { font-size: 0.85rem; color: #6B6B6B; line-height: 1.6; text-align: justify; }
+
+    /* === TOAST & LOADER === */
+    .toast { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%) translateY(20px); background: #1C1C1E; color: white; padding: 12px 22px; border-radius: 10px; font-size: 0.87rem; font-weight: 700; opacity: 0; transition: all 0.3s; z-index: 500; white-space: nowrap; pointer-events: none; }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    ::-webkit-scrollbar { width: 0; height: 0; }
+    .global-loader { position: fixed; inset: 0; background: rgba(255, 255, 255, 0.88); backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px); z-index: 10000; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.2s; }
+    .spinner { width: 50px; height: 50px; border: 4px solid #E5E5EA; border-top-color: var(--green-dark); border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 16px; }
+    .loader-text { font-size: 1.05rem; font-weight: 800; color: #1C1C1E; text-align: center; padding: 0 24px; }
+
+    /* === VISTA BIOMETRÍA (ESTILO ACTUALIZACIONDEDATOS) === */
+    #vista-biometria { padding-bottom: 120px; background: #ffffff; min-height: 100vh; }
+    .bio-privacy-box { background: #f2f2f7; padding: 16px 18px; border-radius: 16px; font-size: 0.85rem; color: #3a3a3c; margin: 16px; line-height: 1.5; text-align: justify; }
+    .photo-slot { background: #fafafa; border: 1.5px solid #e5e5ea; border-radius: 20px; padding: 22px 16px; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; margin: 0 16px 18px; transition: all 0.25s ease; }
+    .photo-slot.has-image { border-color: var(--verde-jara); background: #f7fcf9; }
+    .slot-header { display: flex; align-items: center; justify-content: center; gap: 8px; font-weight: 800; color: #1d1d1f; margin-bottom: 6px; font-size: 1.05rem; }
+    .slot-sub { font-size: 0.84rem; color: #6e6e73; margin-bottom: 14px; line-height: 1.4; }
+    .example-image { width: 100%; max-width: 240px; max-height: 200px; object-fit: contain; margin-bottom: 16px; border-radius: 14px; background: #fff; border: 1px solid #e5e5ea; padding: 4px; }
+    .preview-image { width: 100%; max-width: 240px; max-height: 210px; object-fit: cover; margin-bottom: 14px; border-radius: 14px; border: 2px solid var(--verde-jara); display: none; box-shadow: 0 6px 16px rgba(0,0,0,0.08); }
+    .btn-accion-bio { width: 100%; max-width: 280px; padding: 15px 20px; background: var(--verde-jara-light); color: var(--verde-jara-dark); border: 1.5px solid rgba(67, 152, 89, 0.35); border-radius: 14px; font-size: 1rem; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 10px; transition: all 0.2s ease; }
+    .btn-accion-bio:hover { background: #daf0e1; }
+    .btn-accion-bio:disabled { opacity: 0.55; cursor: not-allowed; }
+    .signature-footer { text-align: center; margin: 10px 16px 20px; font-size: 0.9rem; font-weight: 800; color: #1d1d1f; }
+
+    /* === MODAL INMERSIVO PANTALLA COMPLETA (FACE ID NIVEL BANCO) === */
+    .scanner-overlay-modal { position: fixed; inset: 0; width: 100vw; height: 100dvh; background: #ffffff; z-index: 9500; display: flex; flex-direction: column; overflow-y: auto; }
+    .scanner-modal-inner { width: 100%; min-height: 100%; display: flex; flex-direction: column; background: #ffffff; }
+    .top-brand-bar { background: var(--verde-jara); color: #ffffff; text-align: center; padding: 22px 20px 30px; border-bottom-left-radius: 50% 26px; border-bottom-right-radius: 50% 26px; position: relative; z-index: 3; }
+    .top-brand-title { font-size: 1.55rem; font-weight: 800; letter-spacing: -0.3px; }
+    .instruction-banner { background: var(--bg-banner-ice); margin-top: -22px; padding: 38px 22px 20px; position: relative; z-index: 2; border-bottom: 1px solid #e2eefc; text-align: center; }
+    .instruction-banner h2 { color: var(--azul-instruccion); font-size: 1.4rem; font-weight: 800; letter-spacing: -0.4px; margin-bottom: 4px; line-height: 1.2; }
+    .instruction-banner p { color: #2b5876; font-size: 0.92rem; font-weight: 600; line-height: 1.4; }
+    .scanner-stage-body { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 16px 20px 28px; position: relative; }
+    .face-scanner-box { position: relative; width: 310px; height: 310px; display: flex; align-items: center; justify-content: center; }
+    @media (max-width: 360px) { .face-scanner-box { width: 276px; height: 276px; } }
+    .face-ticks-svg { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 4; transition: transform 0.3s ease; }
+    .face-ticks-svg.analyzing-spin { animation: radarPulse 1.2s ease-in-out infinite; }
+    @keyframes radarPulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.025); } }
+    .tick-line { stroke: #d1d5db; stroke-width: 3.2; stroke-linecap: round; transition: stroke 0.25s ease, stroke-width 0.25s ease; }
+    .tick-line.active-target { stroke: #0284c7; stroke-width: 3.8; }
+    .tick-line.completed { stroke: #15803d !important; stroke-width: 3.8; }
+    .tick-line.error-tick { stroke: #dc2626 !important; stroke-width: 3.8; }
+
+    .face-circle-viewport { width: 78%; height: 78%; border-radius: 50%; overflow: hidden; position: relative; border: 3.5px solid #1e3a8a; background: #f1f5f9; z-index: 2; transition: border-color 0.3s ease, box-shadow 0.3s ease; }
+    .face-circle-viewport.scanning-blue { border-color: #0284c7; box-shadow: 0 0 25px rgba(2, 132, 199, 0.35); }
+    .face-circle-viewport.ready-green { border-color: #15803d; box-shadow: 0 0 25px rgba(21, 128, 61, 0.35); }
+    .face-circle-viewport.error-red { border-color: #dc2626; box-shadow: 0 0 25px rgba(220, 38, 38, 0.4); }
+    .face-circle-viewport video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
+
+    /* LÁSER DE ESCANEO BIOMÉTRICO EN VIVO (SIN CONGELAR VIDEO) */
+    .biometric-laser-beam {
+      position: absolute; left: 0; right: 0; height: 4px;
+      background: linear-gradient(90deg, transparent 0%, #38bdf8 20%, #ffffff 50%, #38bdf8 80%, transparent 100%);
+      box-shadow: 0 0 18px 4px rgba(56, 189, 248, 0.85);
+      z-index: 5; opacity: 0; pointer-events: none;
+    }
+    .biometric-laser-beam.active { opacity: 1; animation: laserSweep 1.25s ease-in-out infinite alternate; }
+    @keyframes laserSweep { 0% { top: 8%; } 100% { top: 90%; } }
+
+    .floating-pill-prompt {
+      position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+      color: var(--azul-instruccion); padding: 13px 18px; border-radius: 14px;
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.16); display: inline-flex; align-items: center; justify-content: center;
+      gap: 10px; width: 86%; max-width: 235px; z-index: 6; pointer-events: none; transition: all 0.25s ease;
+    }
+    .floating-pill-prompt span { font-size: 0.92rem; font-weight: 800; line-height: 1.3; text-align: center; }
+    .floating-pill-prompt.pill-error { background: #fef2f2; color: #b91c1c; border: 1.5px solid #fecaca; }
+
+    .face-success-cover {
+      position: absolute; inset: 0; background: #dcfce7; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center; z-index: 8;
+      opacity: 0; pointer-events: none; transition: opacity 0.35s ease;
+    }
+    .face-success-cover.show { opacity: 1; }
+    .checkmark-svg { width: 86px; height: 86px; stroke: #15803d; stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+    .checkmark-path { stroke-dasharray: 100; stroke-dashoffset: 100; }
+    .face-success-cover.show .checkmark-path { animation: drawCheck 0.55s cubic-bezier(0.65, 0, 0.45, 1) 0.15s forwards; }
+    @keyframes drawCheck { to { stroke-dashoffset: 0; } }
+    .scanner-footer-controls { margin-top: 22px; display: flex; gap: 12px; justify-content: center; width: 100%; max-width: 320px; }
+
+    /* ==========================================================================
+       DISEÑO RESPONSIVO EJECUTIVO PARA TABLET Y COMPUTADORA (>= 768px)
+       (Móvil < 768px permanece 100% intacto)
+       ========================================================================== */
+    @media (min-width: 768px) {
+      html, body { background: #EEF2F6; }
+
+      .screen-wrap {
+        max-width: 1140px;
+        margin: 0 auto;
+        background: transparent;
+        min-height: 100vh;
+        padding: 94px 28px 48px;
+      }
+
+      /* Cuando estamos en login o carga, quitamos el padding superior del navbar */
+      .screen-wrap:has(#vista-login:not(.hidden)),
+      .screen-wrap:has(#vista-carga:not(.hidden)) {
+        padding-top: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      /* Barra de Navegación Superior Ejecutiva en PC */
+      .bottom-nav {
+        top: 0;
+        bottom: auto;
+        left: 0;
+        right: 0;
+        transform: none;
+        max-width: 100%;
+        height: 70px;
+        background: #1C1C1E;
+        border-top: none;
+        border-bottom: 2px solid var(--gold);
+        justify-content: center;
+        gap: 18px;
+        padding: 0 32px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+      }
+      .bottom-nav::before {
+        content: 'PrestaJara Préstamos';
+        color: #ffffff;
+        font-weight: 900;
+        font-size: 1.2rem;
+        margin-right: auto;
+        letter-spacing: -0.3px;
+      }
+      .nav-item {
+        flex-direction: row;
+        gap: 8px;
+        font-size: 0.9rem;
+        color: #AEAEB2;
+        padding: 10px 18px;
+        border-radius: 10px;
+      }
+      .nav-item i { font-size: 1.05rem; }
+      .nav-item:hover { color: #ffffff; background: rgba(255, 255, 255, 0.08); }
+      .nav-item.active-nav { background: var(--orange); color: #ffffff; }
+
+      /* Login Ejecutivo en Computadora */
+      #vista-login {
+        min-height: auto;
+        width: 100%;
+        max-width: 480px;
+        margin: 20px auto;
+        border-radius: 28px;
+        padding: 48px 44px;
+        box-shadow: 0 20px 50px rgba(15, 23, 42, 0.1);
+        border: 1px solid #E2E8F0;
+      }
+
+      /* Splash Carga en Computadora */
+      #vista-carga {
+        min-height: auto;
+        width: 100%;
+        max-width: 540px;
+        margin: 20px auto;
+        border-radius: 28px;
+        padding: 48px 44px;
+        box-shadow: 0 20px 50px rgba(15, 23, 42, 0.1);
+      }
+
+      /* Dashboard en Cuadrícula Ejecutiva de 2 Columnas en PC */
+      #vista-dashboard {
+        background: #ffffff;
+        border-radius: 24px;
+        box-shadow: 0 12px 36px rgba(15, 23, 42, 0.07);
+        overflow: hidden;
+        padding-bottom: 36px;
+        display: grid;
+        grid-template-columns: 1.15fr 0.85fr;
+        gap: 0 24px;
+        align-items: start;
+      }
+      #vista-dashboard > .dash-top-bar,
+      #vista-dashboard > .cuenta-line,
+      #vista-dashboard > .dash-header {
+        grid-column: 1 / -1;
+      }
+      #vista-dashboard > .dash-top-bar { padding: 18px 32px; }
+      #vista-dashboard > .dash-header { padding: 24px 32px 18px; }
+      #vista-dashboard > .section-div { display: none; }
+
+      /* Columna Izquierda del Dashboard */
+      #vista-dashboard > .premium-card-outer { grid-column: 1; margin: 0 0 16px 32px; }
+      #vista-dashboard > .info-row-card { grid-column: 1; margin: 0 0 16px 32px; border: 1px solid var(--border); }
+      #vista-dashboard > .btn-dark { grid-column: 1; width: calc(100% - 32px); margin: 0 0 18px 32px; }
+      #vista-dashboard > .note-card { grid-column: 1; margin: 0 0 18px 32px; border: 1px solid var(--border); }
+
+      /* Columna Derecha del Dashboard */
+      #vista-dashboard > div[style*="margin:0 16px"] {
+        grid-column: 2;
+        grid-row: 4 / span 3;
+        margin: 0 32px 18px 0 !important;
+        border: 1px solid var(--border);
+      }
+      #vista-dashboard > .referral-section {
+        grid-column: 2;
+        margin: 0 32px 18px 0;
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        box-shadow: var(--shadow);
+      }
+      #vista-dashboard > .limites-section {
+        grid-column: 1;
+        margin: 0 0 18px 32px;
+        padding: 0;
+      }
+      #vista-dashboard > .info-imp-section {
+        grid-column: 2;
+        margin: 0 32px 18px 0;
+        padding: 0;
+      }
+      .info-grid { grid-template-columns: repeat(3, 1fr); }
+
+      /* Vistas Internas como Tarjetas Ejecutivas Centradas en PC */
+      #vista-cuenta,
+      #vista-pago,
+      #vista-creditos-detalle,
+      #vista-metodo-pago,
+      #vista-limites,
+      #vista-guia,
+      #vista-prestamo-nuevo,
+      #vista-contrato,
+      #vista-biometria {
+        max-width: 780px;
+        margin: 0 auto;
+        background: #ffffff;
+        border-radius: 24px;
+        box-shadow: 0 14px 40px rgba(15, 23, 42, 0.08);
+        border: 1px solid #E2E8F0;
+        overflow: hidden;
+        padding-bottom: 40px;
+      }
+
+      /* Botones y tarjetas internas proporcionadas en PC */
+      #vista-pago .btn-dark,
+      #vista-pago .btn-outline,
+      #vista-cuenta .btn-outline,
+      #vista-limites .btn-solicitar,
+      #vista-prestamo-nuevo .btn-green-full {
+        max-width: 420px;
+        margin-left: auto;
+        margin-right: auto;
+      }
+
+      /* Barra inferior de Contrato adaptada dentro de la tarjeta en PC */
+      .ct-bottom-fixed {
+        position: static;
+        max-width: 420px;
+        margin: 24px auto 0;
+        border-top: none;
+        box-shadow: none;
+        padding: 0;
+        background: transparent;
+      }
+
+      /* Modal del Escáner Facial como Ventana Flotante Centrada en PC */
+      .scanner-overlay-modal {
+        background: rgba(15, 23, 42, 0.65);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+      }
+      .scanner-modal-inner {
+        width: 100%;
+        max-width: 520px;
+        min-height: auto;
+        border-radius: 28px;
+        overflow: hidden;
+        box-shadow: 0 25px 60px rgba(0, 0, 0, 0.35);
+        max-height: 92vh;
+      }
     }
   </style>
 </head>
-<body>
-  <iframe 
-    src="https://script.google.com/macros/s/AKfycbyL4zE8xUcLMXeum5srIPD8AaeaFLB6pt-qQ3ETpPd36ds6I1Pf2q1cy3MxwEevs_ZO/exec"
-    allowfullscreen="true">
-  </iframe>
+<!-- === FIN DE LA PARTE 1: DIME "SIGUIENTE" PARA LA PARTE 2 === -->
+  <!-- === INICIO DE LA PARTE 2 === -->
+  <body>
+    <div id="global-loader" class="global-loader hidden">
+      <div class="spinner"></div>
+      <div class="loader-text" id="loader-text">Procesando...</div>
+    </div>
 
-  <script>
-    window.onload = function() {
-      var iframe = document.querySelector('iframe');
-      // Nota: Muchos navegadores móviles bloquean el fullscreen automático sin interacción del usuario, 
-      // pero mantenemos tu código original por si el usuario instala la PWA o interactúa.
-      if (iframe.requestFullscreen) {
-        iframe.requestFullscreen().catch((err) => {
-          console.error('Error attempting to enable full-screen mode:', err.message);
+    <div class="screen-wrap">
+
+      <div id="vista-login" class="fade-in">
+        <div class="login-logo-wrap">
+          <img class="login-logo-img" src="https://i.postimg.cc/LXYzQpMF/Logo_circular_Presta_Jara.png" alt="PrestaJara">
+          <div class="login-brand"><span>Presta</span>Jara</div>
+          <div class="login-tagline">Tu crédito, fácil y seguro</div>
+        </div>
+
+        <div class="login-card">
+          <div class="login-card-title">Iniciar sesión</div>
+          <div class="login-card-sub">Ingresa tus datos para continuar</div>
+
+          <div class="login-field">
+            <label class="login-label" for="inp-numcliente">Número de cliente</label>
+            <div class="login-input-wrap">
+              <input id="inp-numcliente" class="login-input" type="text" placeholder="Ej. 000123" autocomplete="username">
+              <i class="fas fa-user login-input-icon"></i>
+            </div>
+          </div>
+
+          <div class="login-field" style="margin-bottom:6px;">
+            <label class="login-label" for="inp-password">Contraseña</label>
+            <div class="login-input-wrap">
+              <input id="inp-password" class="login-input" type="password" placeholder="••••••••" autocomplete="current-password" style="padding-right:46px;">
+              <button class="toggle-pass" type="button" onclick="togglePass()" id="toggle-eye">
+                <i class="fas fa-eye" id="eye-icon"></i>
+              </button>
+            </div>
+          </div>
+
+          <div id="login-error" class="login-error hidden">
+            <i class="fas fa-circle-exclamation"></i>
+            <span id="login-error-msg">Número de cliente o contraseña incorrectos.</span>
+          </div>
+
+          <button class="btn-login" id="btn-login" onclick="intentarLogin()">Ingresar</button>
+        </div>
+
+        <div class="login-footer">PrestaJara Préstamos  ·  Acceso seguro</div>
+      </div>
+
+      <div id="vista-carga" class="hidden">
+        <div class="splash-logo">
+          <img class="splash-logo-img" src="https://i.postimg.cc/LXYzQpMF/Logo_circular_Presta_Jara.png" alt="PrestaJara">
+          <div class="splash-logo-name"><strong>PrestaJara</strong> Préstamos</div>
+        </div>
+        <div class="pay-badge-3d">
+          <span class="pay-zero">0</span>
+          <span class="pay-percent">%</span>
+          <span class="pay-label">PAY</span>
+        </div>
+        <div class="splash-premium-row" id="splash-prem-row">
+          <span class="star" id="splash-star"><i class="fas fa-circle-notch fa-spin"></i></span>
+          <span class="prem-text" id="tc-splash">Validando base de datos espere<span class="dot1">.</span><span class="dot2">.</span><span class="dot3">.</span></span>
+        </div>
+        <h2 class="splash-title">Realiza pagos con<br>más flexibilidad</h2>
+        <p class="splash-desc">Estamos mejorando para tí</p>
+        <div class="splash-pct-label" id="splash-pct-label">0%</div>
+        <div class="progress-track"><div class="progress-bar-fill" id="progress-fill"></div></div>
+      </div>
+
+      <div id="vista-dashboard" class="hidden">
+        <div class="dash-top-bar">
+          <div class="user-greeting">Hola, <span id="user-name-text" style="text-transform: uppercase;">Usuario</span></div>
+          <button class="btn-logout-circle" onclick="cerrarSesion()" title="Cerrar sesión">
+            <i class="fas fa-arrow-right-from-bracket"></i>
+          </button>
+        </div>
+        <div class="cuenta-line" id="cuenta-line"></div>
+        
+        <div class="dash-header">
+          <h1 class="dash-title" id="app-title">PrestaJara Préstamos</h1>
+          <div class="dash-subtitle"><i class="fas fa-shield-halved"></i><span>Nueva seguridad incluida</span></div>
+        </div>
+        
+        <div class="premium-card-outer">
+          <div class="premium-card-header"><span class="prem-star-icon">✦</span><span class="prem-header-text"><span id="tc-card-header">SALDO</span> <span class="chevron">›</span></span></div>
+          <div class="premium-card-body">
+            <div class="credit-revolv-label">Saldo actual de la cuenta (MXN$) <i class="fas fa-circle-info"></i></div>
+            <div class="credit-big-amount" id="credit-limit">0.00</div>
+          </div>
+        </div>
+        <div class="info-row-card"><span class="info-row-label">Interés mensual de solo</span><span class="info-row-value" id="monthly-interest">8.00%</span></div>
+        
+        <button class="btn-dark" onclick="verificarPrestamoNuevo(this)">Solicitar crédito</button>
+        
+        <div class="note-card" onclick="abrirModalProximamente()">
+          <div class="note-title-row">Nota <span class="note-divider">|</span> <span id="nota-titulo">Nota</span>  ›</div>
+          <div class="note-body" id="nota-mensaje">Mensaje de la nota...</div>
+        </div>
+        <div style="margin:0 16px; background:white; border-radius:14px; overflow:hidden; box-shadow:0 2px 12px rgba(0,0,0,0.08);">
+          <button class="premium-bar-btn" onclick="cambiarVista('vista-pago')" style="margin:0; width:100%; border-radius:0;">
+            <div class="prem-bar-inner"><span style="color:var(--gold-light);">✦</span> <span id="tc-bar">CRÉDITO</span>  | <span class="prem-bar-count" id="beneficios-count">2 beneficio(s) de pago</span><i class="fas fa-chevron-right" style="font-size:0.75rem; opacity:0.6; margin-left:4px;"></i></div>
+          </button>
+          <div class="mi-pago-wrap" style="border-top:1px solid var(--border); border-radius:0;">
+            <div class="mi-pago-label">Mi pago</div>
+            <div class="mi-pago-row">
+              <div>
+                <span class="mi-pago-amount" id="pago-amount">MXN$0.00</span>
+                <span class="mi-pago-original" id="pago-original">0.00</span>
+                <i class="fas fa-circle-info mi-pago-info-icon"></i>
+                <div class="mi-pago-due">Vence el <span id="pago-due">02/04/2026</span></div>
+              </div>
+              <button class="ver-btn-gray" onclick="cambiarVista('vista-pago')">Ver</button>
+            </div>
+          </div>
+        </div>
+        <div class="section-div"></div>
+        <div class="referral-section">
+          <div class="referral-row-outer">
+            <div class="referral-row-content">
+              <div class="referral-eyebrow">Invita y gana dinero</div>
+              <div class="referral-title">Ahora puedes pedir $2,000 m.n. sin<br>interés si traes a un amigo</div>
+              <div class="referral-link-box">
+                <i class="far fa-copy copy-icon"></i>
+                <span class="referral-url" id="referral-url">https://prestajara.com/x</span>
+                <button class="copy-text-btn" onclick="copiarCampo('referral-url', this)">Copiar</button>
+              </div>
+              <span class="conocer-mas-link" onclick="abrirModalProximamente()">Conocer más ›</span>
+            </div>
+            <span class="referral-emoji">💰</span>
+          </div>
+        </div>
+        <div class="section-div"></div>
+        <div class="limites-section">
+          <div class="section-heading">Mis límites</div>
+          <div class="limite-inner">
+            <div class="limite-left-row"><span class="limite-icon-wrap"><i class="fas fa-clock"></i></span><div><div class="limite-label">Ver mi límite de crédito</div><div class="limite-sublabel">Más sobre mi límite de crédito</div></div></div>
+            <button class="ver-btn-dark-sm" onclick="cambiarVista('vista-limites')">Ver</button>
+          </div>
+        </div>
+        <div class="section-div"></div>
+        <div class="info-imp-section">
+          <div class="section-heading">Información importante</div>
+          <div class="info-grid">
+            <div class="info-card-item info-card-prem" onclick="abrirModalProximamente()"><div class="info-card-title">Pagar en<br>línea</div><span class="info-prem-coin">🏦</span><span class="info-arrow">→</span></div>
+            <div class="info-card-item" onclick="actualizarDatos()" style="display:flex; flex-direction:column; justify-content:center; align-items:center; padding: 18px 10px;">
+              <div class="info-card-title" style="margin-bottom: 2px; text-align:center;">Actualización de datos</div>
+              <div id="actualizacion-numcliente" style="font-size:0.75rem; color:var(--text-sec); font-weight:600; margin-bottom: 8px;">Número de cliente: -</div>
+              <span class="info-arrow" style="margin-top:0;">→</span>
+            </div>
+            <div class="info-card-item" onclick="window.open('https://wa.me/526674490323?text=Hola,%20necesito%20ayuda', '_blank')" style="padding: 18px 14px;"><div class="info-card-title">Ayuda</div><span class="info-arrow" style="margin-top:18px;">→</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div id="vista-cuenta" class="hidden">
+        <div class="pago-topbar"><button class="back-btn-icon" onclick="cambiarVista('vista-dashboard')">‹</button><span style="flex:1; text-align:center; font-weight:800; font-size:1.15rem; padding-right:24px; color:#1C1C1E;">Mi Cuenta</span></div>
+        
+        <div style="background: linear-gradient(145deg, #F7E9B5 0%, #EAC94A 100%); padding: 30px 20px; display: flex; flex-direction: column; align-items: center; border-radius: 0 0 24px 24px; margin-bottom: 20px; box-shadow: var(--shadow);">
+          <img src="https://cdn-icons-png.flaticon.com/512/847/847969.png" style="width: 90px; height: 90px; border-radius: 50%; border: 3px solid white; box-shadow: 0 4px 10px rgba(0,0,0,0.1); background: white; padding: 5px; margin-bottom: 15px;">
+          <div style="font-size: 1.25rem; font-weight: 800; color: #1C1C1E; text-align: center; line-height: 1.2;" id="cuenta-nombre">Nombre del Cliente</div>
+          <div style="font-size: 0.95rem; font-weight: 700; color: #6B4C00; margin-top: 6px;">Cliente #<span id="cuenta-num">000000</span></div>
+        </div>
+        
+        <div class="info-row-card" style="margin-bottom: 12px;">
+          <span class="info-row-label">Límite de crédito asignado</span>
+          <span class="info-row-value" style="font-size: 1.1rem; color: var(--green-dark);" id="cuenta-limite">$0.00</span>
+        </div>
+        
+        <div class="note-card" style="margin-bottom: 20px; cursor: default;">
+          <div class="note-title-row" style="color: var(--text-sec); font-size: 0.85rem;">Dirección registrada</div>
+          <div class="note-body" style="font-size: 0.95rem; color: #1C1C1E; font-weight: 700; margin-top: 8px;" id="cuenta-direccion">-</div>
+        </div>
+        
+        <button class="btn-outline" onclick="actualizarDatos()">Actualizar información</button>
+      </div>
+
+      <div id="vista-pago" class="hidden">
+        <div class="pago-topbar"><button class="back-btn-icon" onclick="cambiarVista('vista-dashboard')">‹</button></div>
+        <div class="pending-card">
+          <div class="pending-label-text">Monto pendiente de pago del periodo actual (MXN$)</div>
+          <div>
+            <span class="pending-big" id="pending-amount">0.00</span>
+            <span class="pending-original-text" id="pending-original">1319.78</span>
+            <i class="fas fa-circle-info" style="color:#C0C0C0; font-size:0.8rem; margin-left:5px;"></i>
+          </div>
+          <div class="pending-due-text">Vence el <span id="pending-due">02/04/2026</span></div>
+          <div class="includes-credits-row" onclick="cambiarVista('vista-creditos-detalle')">El pago del periodo incluye <span id="num-creditos-text"> 2 créditos </span><i class="fas fa-chevron-right" style="font-size:0.75rem;"></i></div>
+        </div>
+        <button class="btn-dark" onclick="cambiarVista('vista-metodo-pago')">Pagar</button>
+        <button class="btn-outline" onclick="abrirPagoAnticipado()">Pagar anticipadamente</button>
+        <div class="plan-section">
+          <div class="plan-title">Plan de pago</div>
+          <div class="plan-total-label">Monto pendiente de pago: MXN$<span id="plan-total">0.00</span></div>
+          <div id="plan-items"></div>
+        </div>
+      </div>
+
+      <div id="vista-creditos-detalle" class="hidden">
+        <div class="cd-topbar">
+          <button class="back-btn-icon" onclick="cambiarVista('vista-pago')">‹</button>
+          <span class="cd-title-top">Crédito (s)</span>
+        </div>
+        <div class="cd-main-card">
+          <div class="cd-header-label">Saldo pendiente de pago para este periodo (MXN$)</div>
+          <div class="cd-header-amount" id="cd-header-amount">0.00</div>
+          <div class="cd-header-note">Si tienes varios créditos, paga el total del estado de cuenta, no por crédito.</div>
+        </div>
+        <div class="cd-list-container" id="lista-creditos-detalle"></div>
+      </div>
+
+      <div id="vista-metodo-pago" class="hidden">
+        <div class="spei-topbar"><button class="back-btn-icon" onclick="cambiarVista('vista-pago')">‹</button></div>
+        <div class="spei-info-card">
+          <div class="spei-monto-label" id="spei-monto-label">Monto del pago (MXN$) <i class="fas fa-circle-info"></i></div>
+          <div class="spei-monto-big" id="spei-monto">0.00</div>
+          <div class="spei-desc-text">Puedes realizar el pago por medio de transferencia SPEI o en un OXXO. Recuerda guardar una copia del recibo para llevar el registro de tus pagos.</div>
+        </div>
+        <div class="metodo-card">
+          <div class="metodo-header"><span class="metodo-title">Método de pago</span></div>
+          <div class="metodo-header" style="border-top:1px solid var(--border); background:#FAFAFA;">
+            <span class="metodo-title">SPEI</span>
+            <i class="fas fa-chevron-up" style="color:var(--text-sec); font-size:0.9rem;"></i>
+          </div>
+          <div class="metodo-body">
+            <div class="campo-group">
+              <div class="campo-label">Código de pago (CLABE)</div>
+              <div class="campo-row">
+                <span class="campo-valor" id="spei-clabe">021730065452512799</span>
+                <button class="btn-copiar" onclick="copiarCampo('spei-clabe', this)">Copiar</button>
+              </div>
+            </div>
+            <div class="campo-group">
+              <div class="campo-label">Destinatario</div>
+              <div class="campo-row">
+                <span class="campo-valor" id="spei-destinatario">Omar Antonio Jara Ayala</span>
+                <button class="btn-copiar" onclick="copiarCampo('spei-destinatario', this)">Copiar</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="warning-box">
+          <div class="warning-text">Tu CLABE puede cambiar en ciertas situaciones, por ejemplo, si ocurre un mantenimiento del sistema. Revisa bien tu código de pago antes de realizar una transferencia.</div>
+          <span class="guia-link" onclick="cambiarVista('vista-guia')">Guía de pagos  ›</span>
+        </div>
+      </div>
+
+      <div id="vista-limites" class="hidden">
+        <div class="limites-topbar">
+          <button class="back-btn-icon" onclick="cambiarVista('vista-dashboard')">‹</button>
+        </div>
+
+        <div class="limites-header-card">
+          <div class="limites-main-title">Límite de crédito</div>
+          <div class="limites-dias">Has usado este servicio por <span id="lim-dias">0</span> día(s)</div>
+          <div class="limite-total-label">Límite total (MXN$)</div>
+          <div class="limite-total-monto" id="lim-monto">0.00</div>
+        </div>
+
+        <div class="como-funcionan-card">
+          <div class="como-titulo">Cómo funcionan los cambios en el<br>límite de crédito</div>
+
+          <div class="cf-item">
+            <div class="cf-icon-wrap">🛡️</div>
+            <div class="cf-content">
+              <div class="cf-title">Comparte información correcta y válida</div>
+              <div class="cf-desc">Agregar datos que sean correctos y válidos puede ayudarte a aumentar tu límite de crédito. Cuanto más completa sea la información, mejor podremos entender tus necesidades y ofrecerte un límite más alto.</div>
+            </div>
+          </div>
+
+          <div class="cf-item">
+            <div class="cf-icon-wrap">💳</div>
+            <div class="cf-content">
+              <div class="cf-title">Paga a tiempo y evita atrasarte</div>
+              <div class="cf-desc">Evaluaremos periódicamente el estado de tu crédito. Pagar a tiempo y mantener buenos hábitos crediticios puede ayudar a aumentar tu límite; por el contrario, retrasarte en los pagos puede impedir que este aumente o incluso llevar a que disminuya.</div>
+            </div>
+          </div>
+
+          <div class="cf-item">
+            <div class="cf-icon-wrap">📊</div>
+            <div class="cf-content">
+              <div class="cf-title">Usa nuestros productos con más frecuencia</div>
+              <div class="cf-desc">Te recomendamos usar nuestros productos con más frecuencia para cubrir tus necesidades financieras. Los usuarios activos tienen más posibilidades de recibir un aumento de límite de crédito.</div>
+            </div>
+          </div>
+
+          <div class="limites-prem-badge">
+            <span style="color:var(--gold-light); font-size:1rem;">✦</span>
+            <span>SALDO</span>
+          </div>
+        </div>
+
+        <button class="btn-solicitar" onclick="verificarPrestamoNuevo(this)">Solicitar crédito</button>
+      </div>
+
+      <div id="vista-guia" class="hidden">
+        <div class="guia-topbar"><button class="back-btn-icon" onclick="cambiarVista('vista-metodo-pago')">‹</button></div>
+
+        <div class="guia-clabe-card">
+          <h2 class="guia-titulo" style="margin-bottom:22px;">Pagar con SPEI</h2>
+          <div class="guia-step-header">
+            <div class="guia-step-num">1</div>
+            <div class="guia-step-text">Copia el siguiente código de pago (CLABE).</div>
+          </div>
+          <div class="guia-campo-group">
+            <div class="guia-campo-label">Código de pago (CLABE)</div>
+            <div class="guia-campo-row">
+              <span class="guia-campo-valor" id="guia-clabe">021730065452512799</span>
+              <button class="btn-copiar" onclick="copiarCampo('guia-clabe', this)">Copiar</button>
+            </div>
+          </div>
+          <div class="guia-campo-group">
+            <div class="guia-campo-label">Nombre del beneficiario</div>
+            <div class="guia-campo-row">
+              <span class="guia-campo-valor" id="guia-beneficiario">Omar Antonio Jara Ayala</span>
+              <button class="btn-copiar" onclick="copiarCampo('guia-beneficiario', this)">Copiar</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="guia-aviso">
+          <div class="guia-aviso-text">Al realizar un pago, comprueba que el código de pago ingresado sea el correcto. Si el pago no se procesa por un error en el código de pago, serás responsable de las pérdidas de dinero o los intereses monetarios.</div>
+        </div>
+
+        <div class="pasos-card">
+          <div class="paso-item">
+            <div class="paso-num">2</div>
+            <div class="paso-content">
+              <div class="paso-title">Abre tu aplicación de banca móvil.</div>
+              <div class="paso-desc">Abre tu aplicación de banca móvil y ve a la sección de transferencias.</div>
+              <div><span class="mockup-pill dark"><i class="fas fa-mobile-screen-button"></i> Transferir</span></div>
+            </div>
+          </div>
+          <div class="paso-item">
+            <div class="paso-num">3</div>
+            <div class="paso-content">
+              <div class="paso-title">Pega el código de pago (CLABE).</div>
+              <div class="paso-desc">Pega el código de pago (CLABE) e ingresa la información de la cuenta de PrestaJara Préstamos, la cual recibirá la transferencia.</div>
+              <div class="mockup-clabe-box">CLABE: xxxx-xxxx-xxxx-xxxx<br>Nombre del beneficiario:<br><strong>PrestaJara Préstamos</strong></div>
+            </div>
+          </div>
+          <div class="paso-item" style="margin-bottom:0;">
+            <div class="paso-num">3</div>
+            <div class="paso-content">
+              <div class="paso-title">Ingresa el monto y completa la transferencia.</div>
+              <div class="mockup-amount-box">MXN$XXXX</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="ayuda-footer">
+          <button class="ayuda-btn"><i class="fas fa-circle-question"></i> Ayuda</button>
+        </div>
+      </div>
+
+      <div id="vista-prestamo-nuevo" class="hidden">
+        <div class="pago-topbar">
+          <button class="back-btn-icon" onclick="cambiarVista(vistaAnteriorPrestamo)">‹</button>
+          <span style="flex:1; text-align:center; font-weight:800; font-size:1.15rem; padding-right:24px; color:#1C1C1E;">Préstamo nuevo</span>
+        </div>
+        
+        <div class="circles-wrapper">
+          <div class="circle-item cut-left"><span class="c-val-sm" id="pn-c1">2,500</span></div>
+          <div class="circle-item"><span class="c-val-sm" id="pn-c2">5,000</span></div>
+          <div class="circle-item active-circle">
+            <span class="c-val-cur">$</span>
+            <span class="c-val-big-txt" id="pn-c3">10,000</span>
+            <span class="c-val-curr-bottom">MXN</span>
+          </div>
+          <div class="circle-item"><span class="c-val-sm" id="pn-c4">12,500</span></div>
+          <div class="circle-item cut-right"><span class="c-val-sm" id="pn-c5">15,000</span></div>
+        </div>
+        
+        <div class="shadow-divider"></div>
+        
+        <div class="terms-title">Términos de tu préstamo</div>
+        
+        <div class="option-card" id="pn-opt1">
+          <span class="opt-num">1</span>
+          <span class="opt-text">Opción</span>
+          <i class="fas fa-chevron-right opt-arrow"></i>
+        </div>
+        
+        <div class="option-card" id="pn-opt2">
+          <span class="opt-num">2</span>
+          <span class="opt-text" id="pn-opt2-text">Opción</span>
+          <i class="fas fa-chevron-right opt-arrow"></i>
+        </div>
+        
+        <div class="option-card" id="pn-opt3">
+          <span class="opt-num">3</span>
+          <span class="opt-text">Opción</span>
+          <i class="fas fa-chevron-right opt-arrow"></i>
+        </div>
+        
+        <div class="summary-box">
+          <div class="summary-row"><span class="s-label">Interés</span><span class="s-val" id="pn-interes">$0.00</span></div>
+          <div class="summary-row"><span class="s-label">Deuda total</span><span class="s-val" id="pn-deuda">$0.00</span></div>
+        </div>
+        
+        <button class="btn-green-full" onclick="prepararContrato()">Continuar</button>
+      </div>
+
+      <div id="vista-contrato" class="hidden">
+        <div class="ct-topbar">
+          <button class="back-btn-icon" onclick="cambiarVista('vista-prestamo-nuevo')">‹</button>
+          <span style="flex:1; text-align:center; font-weight:800; font-size:1.15rem; padding-right:24px; color:#1C1C1E;">Contrato/Pagaré</span>
+        </div>
+
+        <div class="ct-alert-txt">Recuerda que los depósitos al instante no están habilitados</div>
+
+        <div class="ct-card" style="text-align:center;">
+          <div class="ct-label-sm">Monto de tu disposición (MXN$)</div>
+          <div class="ct-monto-box">
+            <span class="ct-monto-txt" id="ct-monto">$10,000</span>
+          </div>
+          <div class="ct-note-xs">El crédito se ajusta automáticamente</div>
+        </div>
+
+        <div class="ct-card">
+          <div class="ct-h2">Periodo del pago</div>
+          <div class="ct-flex-row">
+            <div class="ct-btn-light">Mensual</div>
+            <div class="ct-btn-primary" id="ct-esquema">Quincenal</div>
+          </div>
+
+          <div class="ct-h2">Plazos</div>
+          <div class="ct-note-xs" style="text-align:left; margin-bottom:12px;">El plazo del préstamo se ajusta automáticamente.</div>
+          <div class="ct-flex-row">
+            <div id="ct-plazo-btn1" class="ct-btn-light"><span id="ct-plazo1">12</span></div>
+            <div id="ct-plazo-btn2" class="ct-btn-primary"><span id="ct-plazo2">14</span></div>
+            <div id="ct-plazo-btn3" class="ct-btn-light"><span id="ct-plazo3">10</span></div>
+          </div>
+
+          <div class="ct-border-top">
+            <span class="ct-label-sm" style="margin:0;">Vencimiento</span>
+            <span class="ct-val-right" id="ct-vencimiento">30/06/2026</span>
+          </div>
+        </div>
+
+        <div class="ct-card">
+          <div class="ct-row-between">
+            <span class="ct-label-sm" style="margin:0;">Plan de pago</span>
+            <div style="text-align:right;">
+              <div class="ct-val-right" id="ct-plan-pago">15 FEBR. MXN$1600.00</div>
+              <div class="ct-subval" style="font-size: 0.75rem; color: #AEAEB2;">Primer periodo</div>
+            </div>
+          </div>
+          <div class="ct-row-between" style="padding-top:10px;">
+            <span class="ct-label-sm" style="margin:0;">Cupones</span>
+            <span class="ct-val-right" style="font-weight:600;" id="ct-cupones">No hay cupones disponibles</span>
+          </div>
+        </div>
+
+        <div class="ct-card ct-row-between" style="padding:16px 20px;">
+          <span class="ct-label-sm" style="margin:0;">Motivo del crédito</span>
+          <span class="ct-val-right" style="font-weight:600;" id="ct-motivo">Renovación</span>
+        </div>
+
+        <div class="ct-grid-2">
+          <div><span class="ct-grid-label">RFC:</span><span class="ct-grid-val" id="ct-rfc">-</span></div>
+          <div><span class="ct-grid-label">Fecha de Firma:</span><span class="ct-grid-val" id="ct-fecha-firma">27 de marzo de 2026</span></div>
+        </div>
+
+        <div class="ct-chk-wrap">
+          <div style="flex-shrink: 0; margin-top: 2px;">
+            <input type="checkbox" id="ct-checkbox" class="ct-checkbox" onchange="validarEstadoDeAcuerdo()">
+          </div>
+          <div style="flex:1;">
+            <label for="ct-checkbox" class="ct-chk-text" style="display:inline; cursor:pointer;">Aceptó el Anexo de disposición del contrato de crédito de PrestaJara</label>
+            <button type="button" class="ct-link" onclick="abrirModalContrato()">Ver contrato aquí</button>
+          </div>
+        </div>
+
+        <div style="margin: 0 16px 16px;">
+          <span style="display: block; font-size: 0.85rem; font-weight: 700; color: #6B6B6B; margin-bottom: 4px;">Cliente</span>
+          <span id="ct-cliente" style="font-size: 0.95rem; font-weight: 800; color: #1C1C1E;">-</span>
+        </div>
+
+        <div class="ct-input-wrap">
+          <label class="ct-inp-lbl">Correo electrónico *</label>
+          <input type="email" id="ct-email" class="ct-inp" placeholder="Ingresa tu email" oninput="validarEstadoDeAcuerdo()">
+        </div>
+
+        <div class="ct-bottom-fixed">
+          <button id="btn-de-acuerdo" class="ct-btn-final ct-btn-disabled" onclick="clickDeAcuerdo()">DE ACUERDO</button>
+        </div>
+      </div>
+
+      <!-- ================= VISTA 3: ACEPTACIÓN CON CÁMARA INMERSIVA (ESTILO ACTUALIZACIÓN DE DATOS) ================= -->
+      <div id="vista-biometria" class="hidden">
+        <div class="ct-topbar">
+          <button class="back-btn-icon" onclick="cambiarVista('vista-contrato')">‹</button>
+          <span style="flex:1; text-align:center; font-weight:800; font-size:1.15rem; padding-right:24px; color:#1C1C1E;">Validación Biométrica de Firma</span>
+        </div>
+
+        <div class="bio-privacy-box">
+          <span id="bio-nombre-cliente" style="font-weight:700; color:#000;">[NOMBRE]</span> Declaro bajo protesta de decir la verdad que la información aquí asentada es cierta y que el origen de los fondos en los productos y servicios depositados en PrestaJara S.A., proceden de fuentes lícitas. Con la firma biométrica de esta Solicitud expreso mi conocimiento y conformidad con lo estipulado en las declaraciones y cláusulas del contrato.
+        </div>
+
+        <div class="photo-slot" id="slotFirmaFinal">
+          <div class="slot-header"><i class="fas fa-user-shield" style="color: var(--verde-jara);"></i> Firma Biométrica de Cierre</div>
+          <p class="slot-sub">Observa el ejemplo e inicia el escaneo biométrico facial de 5 ángulos para sellar tu contrato.</p>
+          
+          <div class="selfie-angles-row" id="anglesStatusRow" style="display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; margin-bottom: 12px;">
+            <span class="angle-chip" id="chip-frente" style="font-size: 0.72rem; font-weight: 600; padding: 3px 9px; border-radius: 12px; background: #e5e5ea; color: #6e6e73;">Frente</span>
+            <span class="angle-chip" id="chip-abajo" style="font-size: 0.72rem; font-weight: 600; padding: 3px 9px; border-radius: 12px; background: #e5e5ea; color: #6e6e73;">Abajo</span>
+            <span class="angle-chip" id="chip-arriba" style="font-size: 0.72rem; font-weight: 600; padding: 3px 9px; border-radius: 12px; background: #e5e5ea; color: #6e6e73;">Arriba</span>
+            <span class="angle-chip" id="chip-izquierda" style="font-size: 0.72rem; font-weight: 600; padding: 3px 9px; border-radius: 12px; background: #e5e5ea; color: #6e6e73;">Izquierda</span>
+            <span class="angle-chip" id="chip-derecha" style="font-size: 0.72rem; font-weight: 600; padding: 3px 9px; border-radius: 12px; background: #e5e5ea; color: #6e6e73;">Derecha</span>
+          </div>
+
+          <img src="https://drive.google.com/thumbnail?id=1Crz4m8kGZ0Jj3c-dUM6HjlcQyNdNkDHB&sz=w600" class="example-image" id="exampleFirmaFinal" alt="Ejemplo Firma">
+          <img src="" class="preview-image" id="previewFirmaFinal" alt="Preview Firma">
+
+          <button type="button" class="btn-accion-bio" id="btnOpenCamFirmaFinal">
+            <i class="fas fa-camera"></i> Iniciar escaneo biométrico
+          </button>
+        </div>
+
+        <input type="file" id="fileFirmaFinalFallback" accept="image/*" capture="user" style="display: none;">
+
+        <div class="signature-footer">
+          "EL CLIENTE"<br>
+          <span id="bio-nombre-cliente-footer">[NOMBRE]</span>
+        </div>
+      </div>
+
+      <!-- MODALES DE DOCUMENTOS Y ALERTAS -->
+      <div id="modal-doc-contrato" class="hidden" style="position: fixed; inset: 0; z-index: 500; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; padding: 16px;" onclick="cerrarModalCustom(event, 'modal-doc-contrato')">
+        <div id="modal-doc-inner" style="background: white; border-radius: 20px; width: 100%; max-width: 400px; max-height: 90vh; display: flex; flex-direction: column; box-shadow: 0 10px 25px rgba(0,0,0,0.2); animation: slideUp 0.3s ease;">
+          <div style="padding: 18px 20px; border-bottom: 1px solid #E5E5EA; display: flex; justify-content: space-between; align-items: center;">
+            <h3 style="font-size: 1.15rem; font-weight: 800; color: #1C1C1E; margin:0;">Contrato de Crédito</h3>
+            <button onclick="document.getElementById('modal-doc-contrato').classList.add('hidden')" style="background:none; border:none; font-size:1.5rem; color:#AEAEB2; line-height:1; cursor:pointer;">×</button>
+          </div>
+          <div class="ct-modal-content no-scrollbar" style="padding: 20px; overflow-y: auto; flex: 1;">
+            <p><strong>TÉRMINOS Y CONDICIONES DEL ANEXO DE DISPOSICIÓN</strong></p><br>
+            <div id="ct-contrato-texto">Al aceptar el presente documento, el cliente autoriza...</div>
+          </div>
+          <div style="padding: 16px 20px; border-top: 1px solid #E5E5EA; background: #F9FAF9; border-radius: 0 0 20px 20px;">
+            <button class="ct-btn-final ct-btn-enabled" style="padding: 14px;" onclick="aceptarModalContrato()">He leído y acepto el contrato</button>
+          </div>
+        </div>
+      </div>
+
+      <nav class="bottom-nav" id="bottom-nav" style="display: none;">
+        <div class="nav-item active-nav" onclick="cambiarVista('vista-dashboard')" id="nav-inicio">
+          <i class="fas fa-house"></i><span>Inicio</span>
+        </div>
+        <div class="nav-item" onclick="cambiarVista('vista-pago')" id="nav-pagar">
+          <i class="fas fa-wallet"></i><span>Pagar</span>
+        </div>
+        <div class="nav-item" onclick="abrirModalProximamente()" id="nav-mas">
+          <i class="fas fa-bars"></i><span>Más</span>
+        </div>
+        <div class="nav-item" onclick="cambiarVista('vista-cuenta')" id="nav-cuenta">
+          <i class="fas fa-user"></i><span>Cuenta</span>
+        </div>
+      </nav>
+
+      <div class="hidden" id="modal-proximamente" onclick="cerrarModalCustom(event, 'modal-proximamente')" style="position: fixed; inset: 0; z-index: 500; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; padding: 16px;">
+        <div style="background: white; border-radius: 20px; width: 100%; max-width: 320px; display: flex; flex-direction: column; box-shadow: 0 10px 25px rgba(0,0,0,0.2); animation: slideUp 0.3s ease; text-align: center; overflow: hidden;">
+          <div style="padding: 24px 20px 20px;">
+            <div style="font-size: 2.5rem; margin-bottom: 12px;">🔧</div>
+            <h3 style="font-size: 1.15rem; font-weight: 800; color: #1C1C1E; margin-bottom: 8px;">Próximamente disponible</h3>
+            <p style="font-size: 0.9rem; color: #6B6B6B; line-height: 1.5;">Esta función está pendiente de configurar.<br>Pronto podrás disponer de tu crédito desde aquí.</p>
+          </div>
+          <div style="border-top: 1px solid #E5E5EA; background: #F9FAF9;">
+            <button style="width: 100%; padding: 16px; background: transparent; border: none; font-size: 1rem; font-weight: 800; color: #2A7B44; cursor: pointer;" onclick="document.getElementById('modal-proximamente').classList.add('hidden')">Entendido</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="hidden" id="modal-custom-alert" onclick="cerrarModalCustom(event, 'modal-custom-alert')" style="position: fixed; inset: 0; z-index: 500; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; padding: 16px;">
+        <div style="background: white; border-radius: 20px; width: 100%; max-width: 320px; display: flex; flex-direction: column; box-shadow: 0 10px 25px rgba(0,0,0,0.2); animation: slideUp 0.3s ease; text-align: center; overflow: hidden;">
+          <div style="padding: 24px 20px 20px;">
+            <div id="alert-icon" style="font-size: 2.5rem; margin-bottom: 12px;">⚠️</div>
+            <h3 id="alert-title" style="font-size: 1.15rem; font-weight: 800; color: #1C1C1E; margin-bottom: 8px;">Atención</h3>
+            <p id="alert-desc" style="font-size: 0.9rem; color: #6B6B6B; line-height: 1.5;">Mensaje</p>
+          </div>
+          <div style="border-top: 1px solid #E5E5EA; background: #F9FAF9;">
+            <button style="width: 100%; padding: 16px; background: transparent; border: none; font-size: 1rem; font-weight: 800; color: #2A7B44; cursor: pointer;" onclick="document.getElementById('modal-custom-alert').classList.add('hidden')">Entendido</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="hidden" id="modal-custom-confirm" onclick="cerrarModalCustom(event, 'modal-custom-confirm')" style="position: fixed; inset: 0; z-index: 500; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; padding: 16px;">
+        <div style="background: white; border-radius: 20px; width: 100%; max-width: 320px; display: flex; flex-direction: column; box-shadow: 0 10px 25px rgba(0,0,0,0.2); animation: slideUp 0.3s ease; text-align: center; overflow: hidden;">
+          <div style="padding: 24px 20px 20px;">
+            <div style="font-size: 2.5rem; margin-bottom: 12px;">🔄</div>
+            <h3 id="confirm-title" style="font-size: 1.15rem; font-weight: 800; color: #1C1C1E; margin-bottom: 8px;">Confirmar</h3>
+            <p id="confirm-desc" style="font-size: 0.9rem; color: #6B6B6B; line-height: 1.5;">Mensaje</p>
+          </div>
+          <div style="border-top: 1px solid #E5E5EA; background: #F9FAF9; display: flex;">
+            <button style="flex: 1; padding: 16px; background: transparent; border: none; border-right: 1px solid #E5E5EA; font-size: 1rem; font-weight: 700; color: #6B6B6B; cursor: pointer;" onclick="document.getElementById('modal-custom-confirm').classList.add('hidden')">Cancelar</button>
+            <button id="btn-confirm-ok" style="flex: 1; padding: 16px; background: transparent; border: none; font-size: 1rem; font-weight: 800; color: #2A7B44; cursor: pointer;">Aceptar</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="toast" id="toast">¡Copiado!</div>
+    </div>
+
+    <!-- ==========================================================================
+         MODAL INMERSIVO PANTALLA COMPLETA (BIOMETRÍA FACE ID DE 5 PASOS + LÁSER)
+         ========================================================================== -->
+    <div id="scannerOverlayModal" class="scanner-overlay-modal hidden">
+      <div class="scanner-modal-inner">
+        <header class="top-brand-bar">
+          <div class="top-brand-title">PrestaJara</div>
+        </header>
+
+        <section class="instruction-banner">
+          <h2 id="scannerMainTitle">Centra tu cara en el círculo</h2>
+          <p id="scannerSubTitle">Mantén una expresión natural y no sonría.</p>
+        </section>
+
+        <div class="scanner-stage-body">
+          <div id="faceScannerContainer" class="face-scanner-box">
+            <svg id="faceTicksSvg" class="face-ticks-svg" viewBox="0 0 300 300"></svg>
+
+            <div id="faceCircleViewport" class="face-circle-viewport">
+              <video id="videoScannerFace" autoplay playsinline muted></video>
+              <div id="biometricLaserBeam" class="biometric-laser-beam"></div>
+              
+              <div id="faceFloatingPill" class="floating-pill-prompt">
+                <span id="facePillText">Iniciando cámara...</span>
+              </div>
+
+              <div id="faceSuccessCover" class="face-success-cover">
+                <svg class="checkmark-svg" viewBox="0 0 52 52">
+                  <path class="checkmark-path" d="M14 27l8 8 16-16"></path>
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          <canvas id="hiddenCaptureCanvas" class="hidden"></canvas>
+
+          <div class="scanner-footer-controls">
+            <button type="button" id="btnManualCaptureScanner" class="ct-btn-final ct-btn-enabled hidden" style="flex: 1; padding: 14px;">
+              <i class="fas fa-camera"></i> Capturar ahora
+            </button>
+            <button type="button" class="ct-btn-final" onclick="cerrarCamaraGlobal()" style="flex: 1; max-width: 180px; padding: 14px; background: #e5e5ea; color: #1c1c1e;">
+              Cancelar
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+<!-- === FIN DE LA PARTE 2: DIME "SIGUIENTE" PARA LA PARTE 3 === -->
+    <!-- === INICIO DE LA PARTE 3 === -->
+    <script>
+      // =========================================================================
+      // CONFIGURACIÓN DE CONEXIÓN CON TU GOOGLE APPS SCRIPT (COLOCA TU URL AQUÍ)
+      // =========================================================================
+      const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz7hMRuU5eiydu13ARK_yBgSLSy7wDBOQshhwKhQULl4164eBJFn8qY4HbCa01alHYUJg/exec';
+      const SESSION_SALDOS_KEY = 'PRESTAJARA_SALDOS_SESSION_V2';
+
+      var sonidoNotificacion = new Audio('https://cdn.jsdelivr.net/gh/prestajara/cobro-exitosoprestajara.mp3@main/meldix-success-340660.mp3');
+
+      var ALL_VIEWS = [
+        'vista-login', 'vista-carga', 'vista-dashboard', 'vista-cuenta',
+        'vista-pago', 'vista-metodo-pago', 'vista-limites', 'vista-guia',
+        'vista-prestamo-nuevo', 'vista-contrato', 'vista-biometria', 'vista-creditos-detalle'
+      ];
+
+      var clienteLogueado = null;
+      var pagoTotalAnticipado = '0.00';
+      var vistaAnteriorPrestamo = 'vista-dashboard';
+      var globalPrestamoData = null;
+      var cachedDashboardData = null;
+
+      // Variables del motor biométrico y cascada de comparación
+      let modelosCargados = false;
+      let cargandoModelos = false;
+      let descriptorPrincipal = null;       // Descriptor de cara_cliente
+      let descriptoresMovimientos = [];     // Descriptores de Movimientos_Biometricos_URLs
+      let rawMovimientosBase64 = [];        // Imágenes de respaldo en Base64 para carga diferida
+      let errorReferencia = false;
+      let intentosSelfie = 0;
+      let intentosMatch = 0;
+      let selfieBase64Data = null;
+
+      // Variables de cámara en vivo
+      let activeCamStream = null;
+      let isDetectionRunning = false;
+      let isComparingNow = false;
+      let bioHoldCounter = 0;
+      let scannerHistoryPushed = false;
+      let ignoreNextPopState = false;
+
+      // =========================================================================
+      // MOTOR FETCH ANTI-CONGELAMIENTO (CON ABORTCONTROLLER Y REINTENTOS)
+      // =========================================================================
+      async function callBackendAPI(action, params = {}, timeoutMs = 18000, retries = 1) {
+        if (typeof google !== 'undefined' && google.script && google.script.run) {
+          return new Promise((resolve, reject) => {
+            const timer = setTimeout(() => reject(new Error('Tiempo de espera agotado. Revisa tu conexión.')), timeoutMs);
+            google.script.run
+              .withSuccessHandler(res => { clearTimeout(timer); resolve(res); })
+              .withFailureHandler(err => { clearTimeout(timer); reject(err); })
+              .procesarPeticionUnificada({ action, ...params });
+          });
+        }
+
+        if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL.indexOf('http') !== 0) {
+          return simularRespuestaLocal(action, params);
+        }
+
+        for (let intento = 0; intento <= retries; intento++) {
+          const controller = new AbortController();
+          const timerId = setTimeout(() => controller.abort(), timeoutMs);
+          try {
+            const response = await fetch(APPS_SCRIPT_URL, {
+              method: 'POST',
+              headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+              body: JSON.stringify({ action, ...params }),
+              signal: controller.signal
+            });
+            clearTimeout(timerId);
+            if (!response.ok) throw new Error('HTTP ' + response.status);
+            const json = await response.json();
+            return json;
+          } catch (err) {
+            clearTimeout(timerId);
+            if (intento === retries) {
+              if (err.name === 'AbortError') {
+                throw new Error('El servidor tardó demasiado en responder. Verifica tu señal de internet e intenta de nuevo.');
+              }
+              throw new Error('Error de red al conectar con el servidor. Intenta nuevamente.');
+            }
+            await new Promise(r => setTimeout(r, 1000));
+          }
+        }
+      }
+
+      function simularRespuestaLocal(action, params) {
+        return new Promise((resolve) => {
+          setTimeout(() => {
+            if (action === 'verificarLogin') {
+              resolve({ ok: params.numCliente === '000123' && params.password === 'demo123', cliente: '000123' });
+            } else if (action === 'getDashboardData') {
+              resolve({
+                appTitle: 'PrestaJara Préstamos', creditLimit: '11,344.24', pagoAmount: '1,226.98',
+                pagoOriginal: '1,319.78', pagoDue: '02/04/2026', numCreditos: '2',
+                referralLink: 'https://prestajara.com/x', beneficiosCount: '2', pagoTotal: '11,344.24',
+                limiteCredito: '34,400.00', tiempoCredito: '887', nombreCorto: 'ALEXA FERNANDA',
+                nombreCompleto: 'ALEXA FERNANDA OCHIQUI MIRANDA', direccionCliente: 'Av. Las Palmas #123, Culiacán, Sin.',
+                numeroCliente: params.numCliente || '000123', interesCliente: '8',
+                notaTitulo: '¿Qué es la membresía?', notaMensaje: 'Créditos sin garantía física',
+                clabe: '021730065452512799', destinatario: 'Omar Antonio Jara Ayala',
+                planPagos: planDefault, creditosDetalle: []
+              });
+            } else if (action === 'checkPrestamoNuevo') {
+              resolve({
+                status: 'ok', monto_aprestar: 10000, monto_interesprestamo: 6000, monto_hapagar: 16000,
+                opcion_seleccionada: 2, terminos_prestamo: '10 pagos quincenales de $1,600',
+                esquema_pago: 'Quincenal', plazos_opcion1: '12', plazos_opcion2: '14', plazos_opcion3: '10',
+                fecha_apagar: '30/06/2026', plan_de_pago: '15 FEBR. MXN$1600.00',
+                cupon_dedescuento: 'No hay cupones disponibles', motivo_decredito: 'Renovación',
+                rfc: 'XAXX010101000', no_cliente: params.numCliente || '000123',
+                contrato: 'Al aceptar el presente documento, el cliente autoriza a PrestaJara a realizar la disposición del crédito solicitado bajo las condiciones establecidas.'
+              });
+            } else if (action === 'getReferenciasBiometricas') {
+              resolve({ caraPrincipal: null, movimientosBase64: [] });
+            } else if (action === 'guardarContratoFirmado') {
+              resolve({ status: 'ok' });
+            } else {
+              resolve({ status: 'ok' });
+            }
+          }, 600);
         });
       }
-    };
-  </script>
-</body>
+
+      function enviarLog(accion, modulo, descripcion) {
+        var usuarioLog = clienteLogueado ? clienteLogueado : 'Sin sesión';
+        callBackendAPI('registrarLog', { usuario: usuarioLog, accion, modulo, descripcion }, 8000, 0).catch(() => {});
+      }
+
+      // =========================================================================
+      // INICIALIZACIÓN Y PERSISTENCIA DE SESIÓN (ANTI-RECARGA)
+      // =========================================================================
+      document.addEventListener('DOMContentLoaded', () => {
+        construirAnilloTicksSVG();
+        inicializarEventosBiometria();
+        renderPlanPagos(planDefault);
+
+        // Restaurar sesión activa si el usuario recargó la página
+        try {
+          const rawSession = sessionStorage.getItem(SESSION_SALDOS_KEY);
+          if (rawSession) {
+            const saved = JSON.parse(rawSession);
+            if (saved && saved.clienteLogueado && saved.dashboardData) {
+              clienteLogueado = saved.clienteLogueado;
+              cachedDashboardData = saved.dashboardData;
+              rellenarDatos(cachedDashboardData);
+              cambiarVista('vista-dashboard', false);
+              return;
+            }
+          }
+        } catch (e) {}
+
+        cambiarVista('vista-login', false);
+      });
+
+      function guardarSesionLocal() {
+        try {
+          if (clienteLogueado && cachedDashboardData) {
+            sessionStorage.setItem(SESSION_SALDOS_KEY, JSON.stringify({
+              clienteLogueado,
+              dashboardData: cachedDashboardData
+            }));
+          }
+        } catch (e) {}
+      }
+
+      function limpiarSesionLocal() {
+        try { sessionStorage.removeItem(SESSION_SALDOS_KEY); } catch (e) {}
+      }
+
+      function construirAnilloTicksSVG() {
+        const svg = document.getElementById('faceTicksSvg');
+        if (!svg) return;
+        svg.innerHTML = '';
+        const totalTicks = 60;
+        const cx = 150, cy = 150, rInner = 126, rOuter = 140;
+        for (let i = 0; i < totalTicks; i++) {
+          const angleDeg = i * (360 / totalTicks) - 90;
+          const rad = (angleDeg * Math.PI) / 180;
+          const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+          line.setAttribute('x1', (cx + rInner * Math.cos(rad)).toFixed(2));
+          line.setAttribute('y1', (cy + rInner * Math.sin(rad)).toFixed(2));
+          line.setAttribute('x2', (cx + rOuter * Math.cos(rad)).toFixed(2));
+          line.setAttribute('y2', (cy + rOuter * Math.sin(rad)).toFixed(2));
+          line.setAttribute('class', 'tick-line');
+          line.setAttribute('data-tick-index', i);
+          svg.appendChild(line);
+        }
+      }
+
+      function actualizarTicksAnillo(modo = 'normal') {
+        const svg = document.getElementById('faceTicksSvg');
+        const lines = document.querySelectorAll('#faceTicksSvg .tick-line');
+        svg?.classList.remove('analyzing-spin');
+        lines.forEach((line) => {
+          line.classList.remove('active-target', 'completed', 'error-tick');
+          if (modo === 'scanning') line.classList.add('active-target');
+          else if (modo === 'success') line.classList.add('completed');
+          else if (modo === 'error') line.classList.add('error-tick');
+        });
+        if (modo === 'scanning') svg?.classList.add('analyzing-spin');
+      }
+
+      // =========================================================================
+      // MODALES, LOADER Y NAVEGACIÓN
+      // =========================================================================
+      function mostrarLoader(texto) {
+        document.getElementById('loader-text').textContent = texto;
+        document.getElementById('global-loader').classList.remove('hidden');
+      }
+      function ocultarLoader() {
+        document.getElementById('global-loader').classList.add('hidden');
+      }
+
+      function verificarNavegador() {
+        var ua = navigator.userAgent.toLowerCase();
+        var esEdgePorMarca = false;
+        if (navigator.userAgentData && navigator.userAgentData.brands) {
+          navigator.userAgentData.brands.forEach(function(marca) {
+            var nombre = marca.brand.toLowerCase();
+            if (nombre.includes('edge') || nombre.includes('edg') || nombre.includes('microsoft')) esEdgePorMarca = true;
+          });
+        }
+        var tieneEdg = ua.includes('edg') || ua.includes('edge');
+        var tieneOpera = ua.includes('opr') || ua.includes('opera');
+        var tieneFirefox = ua.includes('firefox') || ua.includes('fxios');
+        var esChrome = ua.includes('chrome') || ua.includes('crios');
+        var esSafari = ua.includes('safari') && !esChrome;
+        if (esEdgePorMarca || tieneEdg || tieneOpera || tieneFirefox) return false;
+        return (esChrome || esSafari);
+      }
+
+      function abrirModalProximamente() { document.getElementById('modal-proximamente').classList.remove('hidden'); }
+      function cerrarModalCustom(e, modalId) {
+        if (e.target === document.getElementById(modalId)) document.getElementById(modalId).classList.add('hidden');
+      }
+      function mostrarAlerta(titulo, mensaje, icono) {
+        document.getElementById('alert-title').textContent = titulo || 'Atención';
+        document.getElementById('alert-desc').textContent = mensaje || '';
+        document.getElementById('alert-icon').textContent = icono || '⚠️';
+        document.getElementById('modal-custom-alert').classList.remove('hidden');
+      }
+      function mostrarConfirmacion(titulo, mensaje, callback) {
+        document.getElementById('confirm-title').textContent = titulo || 'Confirmar';
+        document.getElementById('confirm-desc').textContent = mensaje || '';
+        document.getElementById('modal-custom-confirm').classList.remove('hidden');
+        document.getElementById('btn-confirm-ok').onclick = function() {
+          document.getElementById('modal-custom-confirm').classList.add('hidden');
+          if (callback) callback();
+        };
+      }
+      function actualizarDatos() {
+        mostrarConfirmacion('Actualizar datos', '¿Deseas actualizar tu información personal en este momento?', function() {
+          enviarLog('Actualizar datos', 'Información Personal', 'El usuario redirigió al formulario de actualización de datos.');
+          window.top.location.href = 'https://prestajara.github.io/actualizaciondedatos/';
+        });
+      }
+
+      function actualizarNav(id) {
+        ['nav-inicio', 'nav-pagar', 'nav-mas', 'nav-cuenta'].forEach(n => document.getElementById(n).classList.remove('active-nav'));
+        if (id === 'vista-dashboard') document.getElementById('nav-inicio').classList.add('active-nav');
+        else if (['vista-pago', 'vista-metodo-pago', 'vista-guia', 'vista-creditos-detalle'].includes(id)) document.getElementById('nav-pagar').classList.add('active-nav');
+        else if (id === 'vista-cuenta') document.getElementById('nav-cuenta').classList.add('active-nav');
+      }
+
+      function cambiarVista(id, guardarEnHistorial = true) {
+        cerrarCamaraGlobal(true);
+        ALL_VIEWS.forEach(function(v) { document.getElementById(v).classList.add('hidden'); });
+        var t = document.getElementById(id);
+        t.classList.remove('hidden', 'fade-in', 'slide-up');
+        void t.offsetWidth;
+        t.classList.add((id === 'vista-carga' || id === 'vista-login') ? 'fade-in' : 'slide-up');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+
+        var navViews = ['vista-dashboard', 'vista-cuenta', 'vista-pago', 'vista-metodo-pago', 'vista-limites', 'vista-guia', 'vista-prestamo-nuevo', 'vista-creditos-detalle'];
+        document.getElementById('bottom-nav').style.display = navViews.indexOf(id) >= 0 ? 'flex' : 'none';
+        actualizarNav(id);
+
+        if (id === 'vista-metodo-pago') {
+          document.getElementById('spei-monto').textContent = document.getElementById('pending-amount').textContent;
+          document.getElementById('spei-monto-label').innerHTML = 'Monto del pago (MXN$) <i class="fas fa-circle-info"></i>';
+        }
+        if (id !== 'vista-carga' && id !== 'vista-login') {
+          enviarLog('Cambio de vista', 'Navegación', 'El usuario accedió a la pantalla: ' + id);
+        }
+        if (guardarEnHistorial && id !== 'vista-carga' && id !== 'vista-login') {
+          try { history.pushState({ vistaId: id }, '', '#' + id); } catch (e) {}
+        }
+      }
+
+      window.addEventListener('popstate', function(event) {
+        if (ignoreNextPopState) {
+          ignoreNextPopState = false;
+          return;
+        }
+        const modal = document.getElementById('scannerOverlayModal');
+        if (modal && !modal.classList.contains('hidden')) {
+          scannerHistoryPushed = false;
+          cerrarCamaraGlobal(true);
+          return;
+        }
+        if (event.state && event.state.vistaId) {
+          cambiarVista(event.state.vistaId, false);
+        } else if (clienteLogueado) {
+          cambiarVista('vista-dashboard', false);
+        }
+      });
+
+      function abrirPagoAnticipado() {
+        ALL_VIEWS.forEach(function(v) { document.getElementById(v).classList.add('hidden'); });
+        var t = document.getElementById('vista-metodo-pago');
+        t.classList.remove('hidden', 'slide-up');
+        void t.offsetWidth;
+        t.classList.add('slide-up');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        document.getElementById('bottom-nav').style.display = 'flex';
+        actualizarNav('vista-metodo-pago');
+        document.getElementById('spei-monto').textContent = pagoTotalAnticipado;
+        document.getElementById('spei-monto-label').innerHTML = 'Monto total anticipado (MXN$) <i class="fas fa-circle-info"></i>';
+        enviarLog('Clic botón', 'Pagos', 'El usuario ingresó a realizar un pago anticipado.');
+        try { history.pushState({ vistaId: 'vista-metodo-pago' }, '', '#vista-metodo-pago'); } catch (e) {}
+      }
+
+      // =========================================================================
+      // LOGIN Y SPLASH ANTI-BLOQUEO
+      // =========================================================================
+      function togglePass() {
+        var inp = document.getElementById('inp-password');
+        var icon = document.getElementById('eye-icon');
+        if (inp.type === 'password') { inp.type = 'text'; icon.classList.replace('fa-eye', 'fa-eye-slash'); }
+        else { inp.type = 'password'; icon.classList.replace('fa-eye-slash', 'fa-eye'); }
+      }
+
+      async function intentarLogin() {
+        var numCliente = document.getElementById('inp-numcliente').value.trim();
+        var password = document.getElementById('inp-password').value.trim();
+        var errBox = document.getElementById('login-error');
+        var btn = document.getElementById('btn-login');
+
+        errBox.classList.add('hidden');
+        if (!numCliente || !password) {
+          document.getElementById('login-error-msg').textContent = 'Por favor completa todos los campos.';
+          errBox.classList.remove('hidden');
+          return;
+        }
+
+        btn.disabled = true;
+        btn.innerHTML = '<span class="login-spinner"></span>Verificando...';
+
+        try {
+          const res = await callBackendAPI('verificarLogin', { numCliente, password }, 16000, 1);
+          const clienteConfirmado = (res && typeof res === 'object') ? (res.ok ? res.cliente : null) : res;
+          if (clienteConfirmado) {
+            clienteLogueado = String(clienteConfirmado).trim();
+            enviarLog('Inicio de sesión', 'Login', 'El usuario ingresó exitosamente al sistema.');
+            await iniciarSplash();
+          } else {
+            document.getElementById('login-error-msg').textContent = 'Número de cliente o contraseña incorrectos.';
+            errBox.classList.remove('hidden');
+            document.getElementById('inp-password').value = '';
+          }
+        } catch (err) {
+          document.getElementById('login-error-msg').textContent = err.message || 'Error de conexión. Intenta nuevamente.';
+          errBox.classList.remove('hidden');
+        } finally {
+          btn.disabled = false;
+          btn.innerHTML = 'Ingresar';
+        }
+      }
+
+      document.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && !document.getElementById('vista-login').classList.contains('hidden')) intentarLogin();
+      });
+
+      function cerrarSesion() {
+        enviarLog('Cierre de sesión', 'Login', 'El usuario cerró su sesión.');
+        clienteLogueado = null;
+        cachedDashboardData = null;
+        pagoTotalAnticipado = '0.00';
+        limpiarSesionLocal();
+        document.getElementById('inp-numcliente').value = '';
+        document.getElementById('inp-password').value = '';
+        document.getElementById('login-error').classList.add('hidden');
+        document.getElementById('btn-login').disabled = false;
+        document.getElementById('btn-login').innerHTML = 'Ingresar';
+        document.getElementById('inp-password').type = 'password';
+        document.getElementById('eye-icon').classList.replace('fa-eye-slash', 'fa-eye');
+        document.body.classList.remove('validating-mode');
+        cambiarVista('vista-login', false);
+      }
+
+      async function iniciarSplash() {
+        cambiarVista('vista-carga', false);
+        document.body.classList.add('validating-mode');
+        var pctLabel = document.getElementById('splash-pct-label');
+        var fillBar = document.getElementById('progress-fill');
+        pctLabel.textContent = '0%';
+        fillBar.style.transition = 'none';
+        fillBar.style.width = '0%';
+
+        let progressVal = 0;
+        const progressTimer = setInterval(() => {
+          if (progressVal < 90) {
+            progressVal += 4;
+            pctLabel.textContent = progressVal + '%';
+            fillBar.style.width = progressVal + '%';
+          }
+        }, 90);
+
+        const minWait = new Promise(r => setTimeout(r, 2000));
+        try {
+          const [data] = await Promise.all([
+            callBackendAPI('getDashboardData', { numCliente: clienteLogueado }, 20000, 1),
+            minWait
+          ]);
+          clearInterval(progressTimer);
+          pctLabel.textContent = '100%';
+          fillBar.style.width = '100%';
+          if (data) {
+            cachedDashboardData = data;
+            rellenarDatos(data);
+            guardarSesionLocal();
+          }
+          setTimeout(() => {
+            document.body.classList.remove('validating-mode');
+            cambiarVista('vista-dashboard');
+          }, 250);
+        } catch (err) {
+          clearInterval(progressTimer);
+          document.body.classList.remove('validating-mode');
+          cambiarVista('vista-dashboard');
+          mostrarAlerta('Aviso de red', 'Algunos datos tardaron en cargar. Verifica tu conexión.', '🌐');
+        }
+      }
+
+      // =========================================================================
+      // PRÉSTAMO NUEVO Y CONTRATO
+      // =========================================================================
+      async function verificarPrestamoNuevo(btn) {
+        enviarLog('Clic botón', 'Préstamos', 'Solicitó verificación para un crédito nuevo.');
+        ALL_VIEWS.forEach(function(v) {
+          if (!document.getElementById(v).classList.contains('hidden')) vistaAnteriorPrestamo = v;
+        });
+        var origText = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Verificando...';
+        btn.disabled = true;
+
+        try {
+          const res = await callBackendAPI('checkPrestamoNuevo', { numCliente: clienteLogueado }, 18000, 1);
+          if (res.status === 'ok') renderVistaPrestamoNuevo(res);
+          else if (res.status === 'empty') mostrarAlerta('Sin contratos activos', res.message, '📄');
+          else if (res.status === 'no_face') mostrarAlerta('Atención', res.message, '⚠️');
+          else mostrarAlerta('Error', res.message || 'No se pudo verificar.', '⚠️');
+        } catch (err) {
+          mostrarAlerta('Error de conexión', err.message || 'Intenta nuevamente más tarde.', '🌐');
+        } finally {
+          btn.innerHTML = origText;
+          btn.disabled = false;
+        }
+      }
+
+      function formatMoney(val) {
+        var s = String(val).replace(/,/g, '').replace(/\$/g, '').trim();
+        var f = parseFloat(s);
+        if (isNaN(f)) return '$0.00';
+        return '$' + f.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+      }
+
+      function renderVistaPrestamoNuevo(data) {
+        globalPrestamoData = data;
+        var m = parseFloat(String(data.monto_aprestar).replace(/,/g, '')) || 0;
+        document.getElementById('pn-c1').textContent = (m * 0.25).toLocaleString('en-US');
+        document.getElementById('pn-c2').textContent = (m * 0.50).toLocaleString('en-US');
+        document.getElementById('pn-c3').textContent = m.toLocaleString('en-US');
+        document.getElementById('pn-c4').textContent = (m * 1.25).toLocaleString('en-US');
+        document.getElementById('pn-c5').textContent = (m * 1.50).toLocaleString('en-US');
+
+        var optSel = parseInt(data.opcion_seleccionada, 10) || 2;
+        var terminos = data.terminos_prestamo || 'Opción';
+        for (var i = 1; i <= 3; i++) {
+          var el = document.getElementById('pn-opt' + i);
+          if (el) {
+            if (i === optSel) {
+              el.classList.add('selected');
+              el.innerHTML = '<div class="propuesto-badge">Propuesto</div><span class="opt-num">' + i + '</span><span class="opt-text">' + terminos + '</span><i class="fas fa-chevron-right opt-arrow"></i>';
+            } else {
+              el.classList.remove('selected');
+              el.innerHTML = '<span class="opt-num">' + i + '</span><span class="opt-text">Opción</span><i class="fas fa-chevron-right opt-arrow"></i>';
+            }
+          }
+        }
+        document.getElementById('pn-interes').textContent = formatMoney(data.monto_interesprestamo);
+        document.getElementById('pn-deuda').textContent = formatMoney(data.monto_hapagar);
+        cambiarVista('vista-prestamo-nuevo');
+      }
+
+      function prepararContrato() {
+        var d = globalPrestamoData;
+        if (!d) return;
+        document.getElementById('ct-monto').textContent = formatMoney(d.monto_aprestar);
+        document.getElementById('ct-esquema').textContent = d.esquema_pago || 'Quincenal';
+
+        var opc = parseInt(d.opcion_seleccionada, 10) || 2;
+        document.getElementById('ct-plazo1').textContent = d.plazos_opcion1 || '12';
+        document.getElementById('ct-plazo2').textContent = d.plazos_opcion2 || '14';
+        document.getElementById('ct-plazo3').textContent = d.plazos_opcion3 || '10';
+        [1, 2, 3].forEach(function(i) {
+          document.getElementById('ct-plazo-btn' + i).className = (i === opc) ? 'ct-btn-primary' : 'ct-btn-light';
+        });
+
+        var fPag = d.fecha_apagar;
+        if (fPag) {
+          var dObj = new Date(fPag);
+          if (!isNaN(dObj.getTime())) {
+            var dd = dObj.getDate(), mm = dObj.getMonth() + 1, yy = dObj.getFullYear();
+            document.getElementById('ct-vencimiento').textContent = (dd < 10 ? '0' + dd : dd) + '/' + (mm < 10 ? '0' + mm : mm) + '/' + yy;
+          } else { document.getElementById('ct-vencimiento').textContent = fPag; }
+        } else { document.getElementById('ct-vencimiento').textContent = '-'; }
+
+        document.getElementById('ct-plan-pago').textContent = d.plan_de_pago || '-';
+        document.getElementById('ct-cupones').textContent = d.cupon_dedescuento || 'No hay cupones disponibles';
+        document.getElementById('ct-motivo').textContent = d.motivo_decredito || 'Renovación';
+        document.getElementById('ct-rfc').textContent = d.rfc || '-';
+
+        const meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+        const hoy = new Date();
+        document.getElementById('ct-fecha-firma').textContent = hoy.getDate() + ' de ' + meses[hoy.getMonth()] + ' de ' + hoy.getFullYear();
+        document.getElementById('ct-cliente').textContent = d.no_cliente || clienteLogueado || '-';
+        document.getElementById('ct-contrato-texto').innerHTML = (d.contrato || 'Contrato no disponible.').replace(/\n/g, '<br>');
+
+        document.getElementById('ct-checkbox').checked = false;
+        document.getElementById('ct-email').value = '';
+        validarEstadoDeAcuerdo();
+        enviarLog('Generación', 'Contrato', 'El sistema preparó y mostró el contrato del crédito para firma.');
+
+        // Precargar modelos en segundo plano mientras el cliente lee el contrato
+        precargarModelosFaceApi();
+        cambiarVista('vista-contrato');
+      }
+
+      function validarEstadoDeAcuerdo() {
+        var isChecked = document.getElementById('ct-checkbox').checked;
+        var email = document.getElementById('ct-email').value.trim();
+        var btn = document.getElementById('btn-de-acuerdo');
+        var isValidEmail = email.length > 4 && email.indexOf('@') > 0 && email.indexOf('.') > -1;
+        if (isChecked && isValidEmail) {
+          btn.classList.add('ct-btn-enabled');
+          btn.classList.remove('ct-btn-disabled');
+        } else {
+          btn.classList.add('ct-btn-disabled');
+          btn.classList.remove('ct-btn-enabled');
+        }
+      }
+
+      function clickDeAcuerdo() {
+        var isChecked = document.getElementById('ct-checkbox').checked;
+        var email = document.getElementById('ct-email').value.trim();
+        if (!isChecked) {
+          mostrarAlerta('Atención', 'Debes aceptar el Anexo de disposición del contrato de crédito.', '⚠️');
+          return;
+        }
+        if (email.length < 5 || email.indexOf('@') === -1 || email.indexOf('.') === -1) {
+          mostrarAlerta('Atención', 'Por favor ingresa un correo electrónico válido para continuar.', '📧');
+          return;
+        }
+        if (!verificarNavegador()) {
+          Swal.fire({
+            title: 'Navegador no compatible',
+            html: '<p style="margin-bottom: 20px; color: #4a5568; font-size: 0.95rem;">Para que tu cámara funcione correctamente, por favor utiliza <b>Google Chrome</b> o <b>Safari</b>.</p>' +
+                  '<div style="text-align: center; margin-top: 15px;"><img src="https://i.postimg.cc/W1GMzWJq/Picsart-26-03-25-01-39-05-071.jpg" alt="Chrome o Safari" style="max-width: 180px; height: auto; border-radius: 8px;"></div>',
+            icon: 'warning', allowOutsideClick: false, confirmButtonText: 'Aceptar', confirmButtonColor: '#1C1C1E'
+          });
+          return;
+        }
+        enviarLog('Aceptación', 'Contrato', 'El usuario aceptó los términos del contrato y pasó a firma biométrica.');
+        iniciarValidacionBiometrica();
+      }
+
+      function abrirModalContrato() { document.getElementById('modal-doc-contrato').classList.remove('hidden'); }
+      function aceptarModalContrato() {
+        document.getElementById('ct-checkbox').checked = true;
+        validarEstadoDeAcuerdo();
+        document.getElementById('modal-doc-contrato').classList.add('hidden');
+      }
+
+      // =========================================================================
+      // BIOMETRÍA ESTILO ACTUALIZACIÓN DE DATOS + CASCADA (CARA_CLIENTE -> MOVIMIENTOS)
+      // =========================================================================
+      async function precargarModelosFaceApi() {
+        if (modelosCargados || cargandoModelos || typeof faceapi === 'undefined') return;
+        cargandoModelos = true;
+        try {
+          const MODEL_URL = 'https://justadudewhohacks.github.io/face-api.js/models';
+          await Promise.all([
+            faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
+            faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL),
+            faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
+            faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
+          ]);
+          modelosCargados = true;
+        } catch (e) {
+          console.warn('Error precargando modelos:', e);
+        } finally {
+          cargandoModelos = false;
+        }
+      }
+
+      function convertirBase64AImagen(base64Str) {
+        return new Promise((resolve, reject) => {
+          const img = new Image();
+          img.crossOrigin = 'anonymous';
+          img.onload = () => resolve(img);
+          img.onerror = reject;
+          img.src = base64Str;
+        });
+      }
+
+      async function extraerDescriptorDeBase64(base64Str) {
+        try {
+          const img = await convertirBase64AImagen(base64Str);
+          const det = await faceapi.detectSingleFace(img).withFaceLandmarks().withFaceDescriptor();
+          return det ? det.descriptor : null;
+        } catch (e) {
+          return null;
+        }
+      }
+
+      async function iniciarValidacionBiometrica() {
+        const nomCompleto = document.getElementById('cuenta-nombre')?.textContent || clienteLogueado || 'EL CLIENTE';
+        document.getElementById('bio-nombre-cliente').textContent = nomCompleto.toUpperCase();
+        document.getElementById('bio-nombre-cliente-footer').textContent = nomCompleto.toUpperCase();
+
+        cambiarVista('vista-biometria');
+        descriptorPrincipal = null;
+        descriptoresMovimientos = [];
+        rawMovimientosBase64 = [];
+        errorReferencia = false;
+        intentosSelfie = 0;
+        intentosMatch = 0;
+
+        mostrarLoader('Preparando firma biométrica segura...');
+        try {
+          await precargarModelosFaceApi();
+          const refData = await callBackendAPI('getReferenciasBiometricas', { numCliente: clienteLogueado }, 22000, 1);
+
+          if (refData && refData.caraPrincipal) {
+            descriptorPrincipal = await extraerDescriptorDeBase64(refData.caraPrincipal);
+          }
+          if (refData && Array.isArray(refData.movimientosBase64)) {
+            rawMovimientosBase64 = refData.movimientosBase64;
+          }
+          if (!descriptorPrincipal && rawMovimientosBase64.length === 0) {
+            errorReferencia = true;
+          }
+        } catch (e) {
+          errorReferencia = true;
+        } finally {
+          ocultarLoader();
+        }
+      }
+
+      function inicializarEventosBiometria() {
+        const btnOpen = document.getElementById('btnOpenCamFirmaFinal');
+        if (btnOpen) {
+          btnOpen.addEventListener('click', () => abrirEscannerFirmaSelfie());
+        }
+        const fileFallback = document.getElementById('fileFirmaFinalFallback');
+        if (fileFallback) {
+          fileFallback.addEventListener('change', manejarFallbackSelfie);
+        }
+        const btnManual = document.getElementById('btnManualCaptureScanner');
+        if (btnManual) {
+          btnManual.addEventListener('click', () => {
+            const video = document.getElementById('videoScannerFace');
+            if (video && !isComparingNow) {
+              iniciarAnalisisBiometricoEnVivo(video);
+            }
+          });
+        }
+      }
+
+      async function abrirEscannerFirmaSelfie() {
+        cerrarCamaraGlobal(true);
+        await precargarModelosFaceApi();
+
+        const modal = document.getElementById('scannerOverlayModal');
+        const viewport = document.getElementById('faceCircleViewport');
+        const pill = document.getElementById('faceFloatingPill');
+        const laser = document.getElementById('biometricLaserBeam');
+        const btnManual = document.getElementById('btnManualCaptureScanner');
+
+        document.getElementById('faceSuccessCover').classList.remove('show');
+        viewport.classList.remove('ready-green', 'scanning-blue', 'error-red');
+        pill.classList.remove('hidden', 'pill-error');
+        laser.classList.remove('active');
+        btnManual.classList.add('hidden');
+
+        actualizarTicksAnillo('normal');
+        document.getElementById('scannerMainTitle').innerText = 'Centra tu cara en el círculo';
+        document.getElementById('scannerSubTitle').innerText = 'Mantén tu rostro fijo mirando de frente a la cámara.';
+        document.getElementById('facePillText').innerText = 'Iniciando cámara...';
+
+        modal.classList.remove('hidden');
+        if (!scannerHistoryPushed) {
+          try {
+            window.history.pushState({ vistaId: 'vista-biometria', scannerOpen: true }, '', '#escaner-firma');
+            scannerHistoryPushed = true;
+          } catch (e) {}
+        }
+
+        try {
+          activeCamStream = await navigator.mediaDevices.getUserMedia({
+            audio: false,
+            video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } }
+          });
+          const videoEl = document.getElementById('videoScannerFace');
+          videoEl.srcObject = activeCamStream;
+          isDetectionRunning = true;
+          isComparingNow = false;
+          bioHoldCounter = 0;
+
+          videoEl.onloadedmetadata = () => {
+            videoEl.play().catch(() => {});
+            monitorearEncuadreSelfieEnVivo(videoEl);
+          };
+        } catch (err) {
+          cerrarCamaraGlobal();
+          Swal.fire({
+            icon: 'info',
+            title: 'Cámara directa no disponible',
+            text: 'Puedes tomar tu selfie de firma usando la cámara de tu dispositivo.',
+            showCancelButton: true,
+            confirmButtonText: 'Abrir cámara',
+            cancelButtonText: 'Cancelar',
+            confirmButtonColor: '#439859'
+          }).then(res => {
+            if (res.isConfirmed) document.getElementById('fileFirmaFinalFallback').click();
+          });
+        }
+      }
+
+      function cerrarCamaraGlobal(fromPopState = false) {
+        isDetectionRunning = false;
+        isComparingNow = false;
+        if (activeCamStream) {
+          activeCamStream.getTracks().forEach(t => t.stop());
+          activeCamStream = null;
+        }
+        document.getElementById('scannerOverlayModal')?.classList.add('hidden');
+        if (scannerHistoryPushed && !fromPopState) {
+          scannerHistoryPushed = false;
+          ignoreNextPopState = true;
+          try { window.history.back(); } catch (e) { ignoreNextPopState = false; }
+        } else {
+          scannerHistoryPushed = false;
+        }
+      }
+
+      function extraerFrameVideoBase64(videoEl, maxDim = 920) {
+        const canvas = document.getElementById('hiddenCaptureCanvas');
+        let w = videoEl.videoWidth || 720;
+        let h = videoEl.videoHeight || 720;
+        if (w > maxDim || h > maxDim) {
+          if (w > h) { h = Math.round((h * maxDim) / w); w = maxDim; }
+          else { w = Math.round((w * maxDim) / h); h = maxDim; }
+        }
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.save();
+        ctx.translate(w, 0);
+        ctx.scale(-1, 1);
+        ctx.drawImage(videoEl, 0, 0, w, h);
+        ctx.restore();
+        return canvas.toDataURL('image/jpeg', 0.82);
+      }
+
+      // 1. Monitoreo fluido en vivo sin congelar video
+      async function monitorearEncuadreSelfieEnVivo(video) {
+        if (!isDetectionRunning || isComparingNow) return;
+
+        if (!modelosCargados) {
+          document.getElementById('facePillText').innerText = 'Cargando sensor biométrico...';
+          setTimeout(() => monitorearEncuadreSelfieEnVivo(video), 350);
+          return;
+        }
+
+        try {
+          const det = await faceapi.detectSingleFace(
+            video,
+            new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.45 })
+          );
+
+          const viewport = document.getElementById('faceCircleViewport');
+          const pillText = document.getElementById('facePillText');
+
+          if (!det) {
+            bioHoldCounter = 0;
+            viewport.classList.remove('scanning-blue');
+            pillText.innerText = 'Centra tu cara en el círculo';
+          } else {
+            const vw = video.videoWidth || 640;
+            const vh = video.videoHeight || 480;
+            const faceRatio = det.box.width / Math.min(vw, vh);
+
+            if (faceRatio > 0.78) {
+              bioHoldCounter = 0;
+              pillText.innerText = 'Aléjate un poco';
+            } else if (faceRatio < 0.24) {
+              bioHoldCounter = 0;
+              pillText.innerText = 'Acércate un poco';
+            } else {
+              viewport.classList.add('scanning-blue');
+              pillText.innerText = 'Mantén tu rostro fijo...';
+              bioHoldCounter++;
+
+              if (bioHoldCounter >= 4) {
+                await iniciarAnalisisBiometricoEnVivo(video);
+                return;
+              }
+            }
+          }
+        } catch (e) {
+          document.getElementById('btnManualCaptureScanner').classList.remove('hidden');
+        }
+
+        if (isDetectionRunning && !isComparingNow) {
+          setTimeout(() => requestAnimationFrame(() => monitorearEncuadreSelfieEnVivo(video)), 170);
+        }
+      }
+
+      // 2. Escaneo con láser en vivo + Comparación en cascada (cara_cliente -> Movimientos_Biometricos_URLs)
+      async function iniciarAnalisisBiometricoEnVivo(video) {
+        if (isComparingNow) return;
+        isComparingNow = true;
+
+        const viewport = document.getElementById('faceCircleViewport');
+        const laser = document.getElementById('biometricLaserBeam');
+        const pill = document.getElementById('faceFloatingPill');
+        const pillText = document.getElementById('facePillText');
+
+        // El video sigue corriendo fluido mientras el láser escanea el rostro
+        pill.classList.remove('pill-error');
+        viewport.classList.remove('error-red', 'ready-green');
+        viewport.classList.add('scanning-blue');
+        laser.classList.add('active');
+        actualizarTicksAnillo('scanning');
+        pillText.innerText = 'Verificando identidad...';
+
+        const frameCapturadoB64 = extraerFrameVideoBase64(video, 920);
+        selfieBase64Data = frameCapturadoB64;
+
+        const tiempoMinimoAnimacion = new Promise(r => setTimeout(r, 1100));
+
+        let descriptorSelfieActual = null;
+        try {
+          descriptorSelfieActual = await extraerDescriptorDeBase64(frameCapturadoB64);
+        } catch (e) {}
+
+        await tiempoMinimoAnimacion;
+
+        // Caso A: No se detectó un rostro nítido en el frame
+        if (!descriptorSelfieActual) {
+          intentosSelfie++;
+          enviarLog('Captura fallida', 'Biometría', 'No se detectó rostro claro en el escáner. Intento: ' + intentosSelfie);
+          if (intentosSelfie >= 3) {
+            laser.classList.remove('active');
+            cerrarCamaraGlobal();
+            mostrarAlerta('Revisión Manual', 'No se logró capturar un rostro nítido tras 3 intentos. Se enviará a revisión manual.', '👨‍💻');
+            setTimeout(() => enviarDatosBackend('Revisión Manual'), 1200);
+            return;
+          }
+          mostrarFalloEnEscanner(`Rostro poco claro. Intenta de nuevo (${intentosSelfie}/3)`, video);
+          return;
+        }
+
+        // Caso B: No existe referencia válida en base de datos -> pasa a Revisión Manual
+        if (errorReferencia) {
+          laser.classList.remove('active');
+          mostrarExitoEnEscanner(frameCapturadoB64, 'Revisión Manual');
+          return;
+        }
+
+        // Caso C: PASO 1 DE CASCADA — Comparar contra cara_cliente
+        let coincidenciaExitosa = false;
+        const UMBRAL_SIMILITUD = 0.6;
+
+        if (descriptorPrincipal) {
+          const distPrincipal = faceapi.euclideanDistance(descriptorPrincipal, descriptorSelfieActual);
+          if (distPrincipal < UMBRAL_SIMILITUD) {
+            coincidenciaExitosa = true;
+          }
+        }
+
+        // PASO 2 DE CASCADA — Si no coincidió con cara_cliente, revisar Movimientos_Biometricos_URLs
+        if (!coincidenciaExitosa && rawMovimientosBase64.length > 0) {
+          pillText.innerText = 'Verificando ángulos biométricos...';
+
+          if (descriptoresMovimientos.length === 0) {
+            for (let i = 0; i < rawMovimientosBase64.length; i++) {
+              const descMov = await extraerDescriptorDeBase64(rawMovimientosBase64[i]);
+              if (descMov) descriptoresMovimientos.push(descMov);
+            }
+          }
+
+          for (let j = 0; j < descriptoresMovimientos.length; j++) {
+            const distAngulo = faceapi.euclideanDistance(descriptoresMovimientos[j], descriptorSelfieActual);
+            if (distAngulo < UMBRAL_SIMILITUD) {
+              coincidenciaExitosa = true;
+              enviarLog('Validación por ángulo', 'Biometría', 'Coincidencia confirmada mediante Movimientos_Biometricos_URLs (ángulo #' + (j + 1) + ').');
+              break;
+            }
+          }
+        }
+
+        laser.classList.remove('active');
+
+        // Veredicto Final
+        if (coincidenciaExitosa) {
+          mostrarExitoEnEscanner(frameCapturadoB64, 'Validado');
+        } else {
+          intentosMatch++;
+          enviarLog('Comparación fallida', 'Biometría', 'El rostro no coincidió ni con cara_cliente ni con Movimientos_Biometricos_URLs. Intento: ' + intentosMatch);
+
+          if (intentosMatch >= 3) {
+            cerrarCamaraGlobal();
+            enviarDatosBackend('Revisión Manual');
+          } else {
+            mostrarFalloEnEscanner(`Tu rostro no coincide. Intento ${intentosMatch} de 3`, video);
+          }
+        }
+      }
+
+      function mostrarExitoEnEscanner(frameB64, estadoFinal) {
+        isDetectionRunning = false;
+        const viewport = document.getElementById('faceCircleViewport');
+        viewport.classList.remove('scanning-blue', 'error-red');
+        viewport.classList.add('ready-green');
+        actualizarTicksAnillo('success');
+
+        document.getElementById('faceFloatingPill').classList.add('hidden');
+        document.getElementById('faceSuccessCover').classList.add('show');
+        if (navigator.vibrate) navigator.vibrate([40, 60, 80]);
+
+        document.getElementById('exampleFirmaFinal').style.display = 'none';
+        const prev = document.getElementById('previewFirmaFinal');
+        prev.src = frameB64;
+        prev.style.display = 'block';
+        document.getElementById('slotFirmaFinal').classList.add('has-image');
+
+        setTimeout(() => {
+          cerrarCamaraGlobal();
+          enviarDatosBackend(estadoFinal);
+        }, 1050);
+      }
+
+      function mostrarFalloEnEscanner(mensajeError, video) {
+        const viewport = document.getElementById('faceCircleViewport');
+        const pill = document.getElementById('faceFloatingPill');
+        const pillText = document.getElementById('facePillText');
+        const box = document.getElementById('faceScannerContainer');
+
+        viewport.classList.remove('scanning-blue', 'ready-green');
+        viewport.classList.add('error-red');
+        actualizarTicksAnillo('error');
+        pill.classList.add('pill-error');
+        pillText.innerText = mensajeError;
+
+        box.classList.add('shake-error');
+        if (navigator.vibrate) navigator.vibrate([120, 80, 120]);
+
+        setTimeout(() => {
+          box.classList.remove('shake-error');
+          viewport.classList.remove('error-red');
+          pill.classList.remove('pill-error');
+          actualizarTicksAnillo('normal');
+          bioHoldCounter = 0;
+          isComparingNow = false;
+          if (isDetectionRunning) {
+            monitorearEncuadreSelfieEnVivo(video);
+          }
+        }, 1900);
+      }
+
+      // Fallback para cámara nativa en caso de bloqueo de permisos web
+      async function manejarFallbackSelfie(e) {
+        const file = e.target.files && e.target.files[0];
+        if (!file) return;
+        e.target.value = '';
+
+        mostrarLoader('Analizando fotografía biométrica...');
+        const reader = new FileReader();
+        reader.onload = async (evt) => {
+          try {
+            selfieBase64Data = evt.target.result;
+            const descSelfie = await extraerDescriptorDeBase64(selfieBase64Data);
+            if (!descSelfie) {
+              ocultarLoader();
+              intentosSelfie++;
+              if (intentosSelfie >= 3) {
+                enviarDatosBackend('Revisión Manual');
+              } else {
+                mostrarAlerta('Rostro no detectado', `No se detectó un rostro claro. Intento ${intentosSelfie} de 3.`, '⚠️');
+              }
+              return;
+            }
+
+            if (errorReferencia) {
+              ocultarLoader();
+              enviarDatosBackend('Revisión Manual');
+              return;
+            }
+
+            let matchOk = false;
+            if (descriptorPrincipal && faceapi.euclideanDistance(descriptorPrincipal, descSelfie) < 0.6) {
+              matchOk = true;
+            }
+            if (!matchOk && rawMovimientosBase64.length > 0) {
+              for (let i = 0; i < rawMovimientosBase64.length; i++) {
+                const dMov = await extraerDescriptorDeBase64(rawMovimientosBase64[i]);
+                if (dMov && faceapi.euclideanDistance(dMov, descSelfie) < 0.6) {
+                  matchOk = true;
+                  break;
+                }
+              }
+            }
+
+            ocultarLoader();
+            if (matchOk) {
+              enviarDatosBackend('Validado');
+            } else {
+              intentosMatch++;
+              if (intentosMatch >= 3) enviarDatosBackend('Revisión Manual');
+              else mostrarAlerta('Validación fallida', `Tu rostro no coincide con nuestro registro. (Intento ${intentosMatch} de 3)`, '❌');
+            }
+          } catch (err) {
+            ocultarLoader();
+            mostrarAlerta('Error', 'Ocurrió un problema al analizar la foto.', '⚠️');
+          }
+        };
+        reader.readAsDataURL(file);
+      }
+
+      // =========================================================================
+      // GUARDADO DE CONTRATO EN GOOGLE SHEETS
+      // =========================================================================
+      async function enviarDatosBackend(estadoMsg) {
+        mostrarLoader('Guardando contrato y sello digital...');
+        enviarLog('Firma de contrato', 'Seguridad y Crédito', 'Finalizó flujo de firma y biometría con estado: ' + estadoMsg);
+
+        let userIP = 'Desconocida';
+        try {
+          const ctrl = new AbortController();
+          setTimeout(() => ctrl.abort(), 3500);
+          const response = await fetch('https://api.ipify.org?format=json', { signal: ctrl.signal });
+          const data = await response.json();
+          userIP = data.ip;
+        } catch (e) {}
+
+        const payload = {
+          no_cliente: clienteLogueado,
+          selfieBase64: selfieBase64Data || '',
+          estado: estadoMsg,
+          ip: userIP,
+          dispositivo: navigator.userAgent
+        };
+
+        try {
+          const res = await callBackendAPI('guardarContratoFirmado', { payload }, 25000, 1);
+          ocultarLoader();
+          if (res && res.status === 'ok') {
+            let titleTxt = estadoMsg === 'Validado' ? '¡Identidad válida!' : 'Revisión Manual';
+            let descTxt = estadoMsg === 'Validado'
+              ? 'La identidad ha sido confirmada y tu contrato fue firmado con éxito.'
+              : 'Se revisará manualmente la validación de identidad por el administrador y el contrato se firmó con éxito.';
+            let iconType = estadoMsg === 'Validado' ? 'success' : 'info';
+
+            try { sonidoNotificacion.play(); } catch (e) {}
+
+            Swal.fire({
+              title: titleTxt,
+              text: descTxt,
+              icon: iconType,
+              showConfirmButton: false,
+              allowOutsideClick: false,
+              timer: 4200,
+              timerProgressBar: true
+            }).then(() => {
+              selfieBase64Data = null;
+              descriptorPrincipal = null;
+              descriptoresMovimientos = [];
+              intentosSelfie = 0;
+              intentosMatch = 0;
+              document.getElementById('previewFirmaFinal').style.display = 'none';
+              document.getElementById('exampleFirmaFinal').style.display = 'block';
+              document.getElementById('slotFirmaFinal').classList.remove('has-image');
+              cambiarVista('vista-dashboard');
+            });
+          } else {
+            mostrarAlerta('Error', (res && res.message) ? res.message : 'No se pudo guardar el contrato.', '⚠️');
+          }
+        } catch (err) {
+          ocultarLoader();
+          mostrarAlerta('Error de conexión', err.message || 'Hubo un problema al guardar el contrato.', '⚠️');
+        }
+      }
+
+      // =========================================================================
+      // RENDERIZADO DEL DASHBOARD Y PLAN DE PAGOS
+      // =========================================================================
+      var planDefault = [
+        { fecha: '02 abr.', monto: 'MXN$0.00', capital: 'MXN$0.00', cargos: 'MXN$0.00', cargosOrig: 'MXN$0.00' },
+        { fecha: '17 abr.', monto: 'MXN$0.00', capital: 'MXN$0.00', cargos: 'MXN$0.00', cargosOrig: 'MXN$0.00' },
+        { fecha: '02 may.', monto: 'MXN$0.00', capital: 'MXN$0.00', cargos: 'MXN$0.00', cargosOrig: 'MXN$0.00' },
+        { fecha: '17 may.', monto: 'MXN$0.00', capital: 'MXN$0.00', cargos: 'MXN$0.00', cargosOrig: 'MXN$0.00' },
+        { fecha: '02 jun.', monto: 'MXN$0.00', capital: 'MXN$0.00', cargos: 'MXN$0.00', cargosOrig: 'MXN$0.00' }
+      ];
+
+      function renderPlanPagos(plan) {
+        var hoy = new Date();
+        hoy.setHours(0, 0, 0, 0);
+
+        document.getElementById('plan-items').innerHTML = plan.map(function(p) {
+          var detailText = (p.capital && p.cargos)
+            ? '<div class="plan-detail-text">Capital ' + p.capital + ' + Cargos totales ' + p.cargos + ' <span class="tachado">' + p.cargosOrig + '</span></div>'
+            : '<div class="plan-detail-text"><span class="tachado">' + p.cargosOrig + '</span></div>';
+
+          var badge = '';
+          if (p.fechaDate) {
+            var ts = parseInt(p.fechaDate, 10);
+            var f = new Date(ts + 43200000);
+            f.setHours(0, 0, 0, 0);
+            var diffDays = Math.floor((hoy.getTime() - f.getTime()) / (1000 * 60 * 60 * 24));
+            if (diffDays > 0) badge = '<span class="badge-vencido">Vencido hace ' + diffDays + ' día(s)</span>';
+          }
+          return '<div class="plan-item-row"><div class="plan-date-col">' + p.fecha + '</div><div class="plan-dot-col"><div class="plan-dot"></div></div><div class="plan-info-col"><div class="plan-monto">' + p.monto + badge + '</div>' + detailText + '</div></div>';
+        }).join('');
+      }
+
+      function rellenarDatos(d) {
+        if (!d) return;
+        var hoy = new Date();
+        hoy.setHours(0, 0, 0, 0);
+        var algunVencido = false;
+        var sumVencidos = 0;
+
+        if (d.planPagos && d.planPagos.length > 0) {
+          d.planPagos.forEach(function(p) {
+            if (p.fechaDate) {
+              var f = new Date(parseInt(p.fechaDate, 10) + 43200000);
+              f.setHours(0, 0, 0, 0);
+              if (hoy.getTime() > f.getTime()) {
+                var mnt = parseFloat(String(p.monto).replace(/[^0-9.-]+/g, ''));
+                if (!isNaN(mnt)) { sumVencidos += mnt; algunVencido = true; }
+              }
+            }
+          });
+          var primerPlan = d.planPagos[0];
+          if (primerPlan && primerPlan.fechaDate) {
+            var fObj = new Date(parseInt(primerPlan.fechaDate, 10) + 43200000);
+            var dd = fObj.getDate(), mm = fObj.getMonth() + 1, yy = fObj.getFullYear();
+            d.pagoDue = (dd < 10 ? '0' + dd : dd) + '/' + (mm < 10 ? '0' + mm : mm) + '/' + yy;
+          }
+          if (algunVencido && sumVencidos > 0) {
+            d.pagoAmount = sumVencidos.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+          }
+        }
+
+        if (d.creditosDetalle && d.creditosDetalle.length > 0) {
+          var htmlCreditos = '';
+          var sumTotalDetalles = 0;
+          d.creditosDetalle.forEach(function(c) {
+            var montoMostrar = 0, estaVencido = false;
+            if (algunVencido) {
+              c.planFechas.forEach(function(pf) {
+                var f = new Date(pf.ts + 43200000);
+                f.setHours(0, 0, 0, 0);
+                if (hoy.getTime() > f.getTime()) { montoMostrar += pf.monto; estaVencido = true; }
+              });
+            } else {
+              montoMostrar = c.pagoAcordado;
+            }
+            if (montoMostrar > 0) {
+              sumTotalDetalles += montoMostrar;
+              var badgeHtml = estaVencido ? '<span class="ci-badge-vencido">Vencido</span>' : '';
+              htmlCreditos += '<div class="credito-item-row"><div class="ci-icon-wrap"><i class="fas fa-sack-dollar"></i></div><div class="ci-content"><div class="ci-header"><span class="ci-title">PrestaJara</span>' + badgeHtml + '<span class="ci-amount">MXN$' + montoMostrar.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' <i class="fas fa-chevron-right" style="font-size:0.75rem; color:#AEAEB2; margin-left:6px;"></i></span></div><div class="ci-pagos">' + c.txtPagos + '</div><div class="ci-obtuviste">' + c.txtObtuviste + '</div></div></div>';
+            }
+          });
+          document.getElementById('lista-creditos-detalle').innerHTML = htmlCreditos;
+          document.getElementById('cd-header-amount').textContent = sumTotalDetalles.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        } else {
+          document.getElementById('lista-creditos-detalle').innerHTML = '<div style="padding: 20px 0; font-size: 0.9rem; color: #AEAEB2; text-align: center;">No hay información disponible.</div>';
+        }
+
+        if (d.nombreCorto) document.getElementById('user-name-text').textContent = d.nombreCorto;
+        if (d.nombreCompleto) document.getElementById('cuenta-nombre').textContent = d.nombreCompleto;
+        if (d.numeroCliente) document.getElementById('cuenta-num').textContent = d.numeroCliente;
+        if (d.limiteCredito) document.getElementById('cuenta-limite').textContent = '$' + d.limiteCredito;
+        if (d.direccionCliente) document.getElementById('cuenta-direccion').textContent = d.direccionCliente;
+        if (d.interesCliente) document.getElementById('monthly-interest').textContent = d.interesCliente + '.00%';
+        if (d.creditLimit) document.getElementById('credit-limit').textContent = d.creditLimit;
+
+        if (d.pagoAmount) {
+          document.getElementById('pago-amount').textContent = 'MXN$' + d.pagoAmount;
+          document.getElementById('pending-amount').textContent = d.pagoAmount;
+          document.getElementById('plan-total').textContent = d.pagoAmount;
+          document.getElementById('spei-monto').textContent = d.pagoAmount;
+        }
+        if (d.pagoOriginal) {
+          document.getElementById('pago-original').textContent = d.pagoOriginal;
+          document.getElementById('pending-original').textContent = d.pagoOriginal;
+        }
+        if (d.pagoDue) {
+          document.getElementById('pago-due').textContent = d.pagoDue;
+          document.getElementById('pending-due').textContent = d.pagoDue;
+        }
+        if (d.numCreditos !== undefined) {
+          var numC = parseInt(d.numCreditos, 10);
+          var textCred = isNaN(numC) ? d.numCreditos + ' créditos' : (numC === 1 ? '1 crédito' : numC + ' créditos');
+          var elCred = document.getElementById('num-creditos-text');
+          if (elCred) elCred.textContent = ' ' + textCred + ' ';
+        }
+
+        if (d.referralLink) document.getElementById('referral-url').textContent = d.referralLink;
+        if (d.beneficiosCount) document.getElementById('beneficios-count').textContent = d.beneficiosCount + ' beneficio(s) de pago';
+        if (d.appTitle) document.getElementById('app-title').textContent = d.appTitle;
+        if (d.clabe) {
+          document.getElementById('spei-clabe').textContent = d.clabe;
+          document.getElementById('guia-clabe').textContent = d.clabe;
+        }
+        if (d.destinatario) {
+          document.getElementById('spei-destinatario').textContent = d.destinatario;
+          document.getElementById('guia-beneficiario').textContent = d.destinatario;
+        }
+        if (d.pagoTotal) pagoTotalAnticipado = d.pagoTotal;
+        if (d.notaTitulo) document.getElementById('nota-titulo').textContent = d.notaTitulo;
+        if (d.notaMensaje) document.getElementById('nota-mensaje').textContent = d.notaMensaje;
+        if (clienteLogueado) document.getElementById('actualizacion-numcliente').textContent = 'Número de cliente: ' + clienteLogueado;
+        if (d.limiteCredito !== undefined) document.getElementById('lim-monto').textContent = d.limiteCredito;
+        if (d.tiempoCredito !== undefined) document.getElementById('lim-dias').textContent = d.tiempoCredito;
+
+        renderPlanPagos((d.planPagos && d.planPagos.length > 0) ? d.planPagos : planDefault);
+      }
+
+      function copiarCampo(idElem, btn) {
+        enviarLog('Copiar dato', 'Interacción', 'Copió al portapapeles el elemento: ' + idElem);
+        var texto = document.getElementById(idElem).textContent.replace(/\s+/g, ' ').trim();
+        function feedback() {
+          btn.textContent = '✓';
+          btn.classList.add('copiado');
+          setTimeout(function() { btn.textContent = 'Copiar'; btn.classList.remove('copiado'); }, 1800);
+          mostrarToast('¡Copiado al portapapeles!');
+        }
+        if (navigator.clipboard) {
+          navigator.clipboard.writeText(texto).then(feedback).catch(function() { fallback(texto, feedback); });
+        } else { fallback(texto, feedback); }
+      }
+      function fallback(txt, cb) {
+        var el = document.createElement('textarea');
+        el.value = txt;
+        el.style.cssText = 'position:fixed;opacity:0;';
+        document.body.appendChild(el);
+        el.select();
+        try { document.execCommand('copy'); } catch (e) {}
+        document.body.removeChild(el);
+        if (cb) cb();
+      }
+      function mostrarToast(msg) {
+        var t = document.getElementById('toast');
+        t.textContent = msg || '¡Copiado!';
+        t.classList.add('show');
+        setTimeout(function() { t.classList.remove('show'); }, 2200);
+      }
+    </script>
+  </body>
 </html>
+<!-- === FIN DEL ARCHIVO INDEX.HTML === -->
